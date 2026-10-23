@@ -134,8 +134,8 @@ func _ready() -> void:
 	_label.text = _name
 	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_label.no_depth_test = true
-	_label.fixed_size = true
-	_label.pixel_size = 0.0016
+	_label.fixed_size = false
+	_label.pixel_size = 0.0065
 	_label.font_size = 22
 	_label.outline_size = 8
 	_label.modulate = _color.lightened(0.35)
@@ -557,9 +557,13 @@ func _process(delta: float) -> void:
 		_animate_figure(delta, k)
 		if _pushing():
 			_place_barrow()
+	var camera := get_viewport().get_camera_3d()
+	var distance := camera.global_position.distance_to(global_position) if camera != null else 0.0
+	_label.visible = distance < 32.0
+	_label.modulate.a = clampf((32.0 - distance) / 8.0, 0.0, 1.0)
 	var tool_txt: String = TOOL_NAMES[_tool] if _tool >= 0 and _tool < TOOL_NAMES.size() else ""
 	# no tool in the tag while both hands are on the barrow
-	_label.text = _name if tool_txt == "" or _tool == 0 or _pushing() else "%s\n[%s]" % [_name, tr(tool_txt)]
+	_label.text = _name if tool_txt == "" or _tool == 0 or _pushing() or distance > 12.0 else "%s\n[%s]" % [_name, tr(tool_txt)]
 
 
 # The native player smooths movement by moving Camera locally even with engine

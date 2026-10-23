@@ -9,7 +9,7 @@ const Progression = preload("res://mods/multiplayer/mp_progression.gd")
 const Balance = preload("res://mods/multiplayer/mp_balance.gd")
 const VacUpgrades = preload("res://mods/multiplayer/mp_vac_upgrades.gd")
 
-const VERSION := "0.1.0-preview.2"
+const VERSION := "0.1.0-preview.3"
 const CONNECT_TIMEOUT := 30.0
 const DEFAULT_PORT := 7777
 const MAX_PEERS := 4  # players in a session, host included (Steam counts the same way)
@@ -28,6 +28,10 @@ const COLORS := [
 enum Phase { OFFLINE, HOSTING, CONNECTING, LOBBY, LOADING, IN_WORLD }
 
 var base_dir := ""
+var _resync_pending := false
+var _resync_deadline := 0
+var _resync_seed := -1
+var updater: Node
 var ui: Node = null
 var world_sync: Node = null
 var _prestige_transition := false
@@ -117,6 +121,10 @@ func _ready() -> void:
 	steam.lobby_joined.connect(_on_steam_lobby_joined)
 	steam.join_requested.connect(_on_steam_join_requested)
 	_start_steam.call_deferred()
+	updater = load(base_dir + "/mp_updates.gd").new()
+	updater.mp = self
+	add_child(updater)
+	updater.start.call_deferred()
 	if OS.get_environment("MP_TEST_HOST") != "" or OS.get_environment("MP_TEST_JOIN") != "" or OS.get_environment("MP_TEST_STEAM") != "" or OS.get_environment("MP_TEST_AVATAR") != "":
 		# the test harness is a dev-only file and is not shipped in releases
 		var test_script: Script = load(base_dir + "/mp_test.gd") if FileAccess.file_exists(base_dir + "/mp_test.gd") else null
@@ -347,6 +355,7 @@ func t(key: String) -> String:
 
 
 func _process(_delta: float) -> void:
+	_check_resync_timeout()
 	if phase == Phase.CONNECTING:
 		_connect_elapsed += _delta
 		if _connect_elapsed >= CONNECT_TIMEOUT:
@@ -1142,19 +1151,40 @@ func _rx_request_world(world_seed: int = -1) -> void:
 		world_sync.send_full_sync(multiplayer.get_remote_sender_id())
 
 
+func _resync_text(en: String, ru: String) -> String:
+	return ru if TranslationServer.get_locale().begins_with("ru") else en
+
+
 func request_resync() -> void:
-	if not active() or not is_instance_valid(world_sync):
+	if not active() or not in_world() or not is_instance_valid(world_sync) or _resync_pending:
 		return
 	if is_host:
+		var sent := 0
 		for pid in players:
 			if pid != 1 and players[pid].get("state") == "world":
 				world_sync.send_full_sync(pid)
-		ui.notify(t("resyncing_all"))
+				sent += 1
+		ui.notify((_resync_text("World snapshot sent to %d players.", "Снимок мира отправлен %d игрокам.") % sent) if sent > 0 else _resync_text("No other players are in the world yet.", "В мире пока нет других игроков."))
 	else:
-		if world_sync != null:
-			world_sync._state_tick()
-		_rx_request_world.rpc_id(1, _outgoing_world_seed())
+		_resync_pending = true
+		_resync_deadline = Time.get_ticks_msec() + 15000
+		_resync_seed = _outgoing_world_seed()
+		world_sync._state_tick()
 		ui.notify(t("asking_world"))
+		ui.refresh()
+		_rx_request_world.rpc_id(1, _resync_seed)
+
+
+func _check_resync_timeout() -> void:
+	if not _resync_pending:
+		return
+	if not active() or not in_world() or _resync_seed != _outgoing_world_seed():
+		_resync_pending = false
+		ui.refresh()
+	elif Time.get_ticks_msec() >= _resync_deadline:
+		_resync_pending = false
+		ui.notify(_resync_text("No resync response within 15 seconds. You can retry.", "Нет ответа на синхронизацию за 15 секунд. Можно повторить запрос."))
+		ui.refresh()
 
 
 # ---------------------------------------------------------------- in-world RPCs (forwarded to mp_world)
@@ -1239,8 +1269,13 @@ func _rx_full_sync(heights: PackedFloat32Array, builds: Array, tech: Dictionary,
 	if not _accept_world_seed(world_seed):
 		return
 	_trace("full_sync", heights.size())
-	if world_sync != null:
-		world_sync.on_full_sync(heights, builds, tech, needles)
+	if is_instance_valid(world_sync):
+		var target: Node = world_sync
+		await target.on_full_sync(heights, builds, tech, needles)
+		if is_instance_valid(target) and _resync_pending and world_sync == target and _resync_seed == world_seed:
+			_resync_pending = false
+			ui.notify(_resync_text("World snapshot applied. Resync complete.", "Снимок мира применён. Синхронизация завершена."))
+			ui.refresh()
 
 
 @rpc("any_peer", "call_remote", "reliable", 0)

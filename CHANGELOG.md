@@ -1,5 +1,13 @@
 # NeedleNet changes
 
+## 0.1.0-preview.3
+
+- Use perspective-scaled remote player names, fade them over 24–32 m and show tool captions only within 12 m.
+- Make manual world refresh report host sends and guest application completion; allow retry after a 15-second response timeout. Normal networking remains automatic.
+- Add cached public GitHub release checks, an available-update notice and a download-page button. Compare preview identifiers numerically; do not replace files while playing.
+- Record successful Steam invitations/co-op as a player report. Keep native shared tutorial hints as a documented limitation.
+
+
 ## 0.1.0-preview.2
 
 - Move chat to the upper-left corner with a translucent background, compact controls and passive recent messages; chat no longer uses center-screen notification cards.

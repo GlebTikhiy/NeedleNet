@@ -123,3 +123,12 @@ Limits: no visual recording of continuous walking/running under packet loss, no 
 - Rendered UI suite: upper-left placement, translucent background, 720p fit, input lock and player-parent body hierarchy passed. The corner layout leaves space for the native tutorial card in the game view.
 
 Separate-PC Steam invitations, long sessions and host-crash recovery remain outside this verification. Pixel tests cover a fixed look-down pose/host color on the supported build, not every possible camera or lighting configuration.
+
+
+## 0.1.0-preview.3 — labels, recovery feedback and release notices
+
+- Player report: Steam invitations and co-op gameplay worked. This is user-reported evidence, distinguished from the automated local-client suite.
+- Four real local clients: PASS guest manual refresh after a local hay-view corruption, completed status and restored height agreement; host status reports sending to three clients. Forced deadline-state test and subsequent real retry passed. The forced timeout checks the state machine, not a 15-second packet-loss simulation.
+- Rendered UI: PASS perspective-scaled name-label configuration, numeric preview ordering (.10 > .2), stable-versus-preview ordering, malformed-version rejection, newest-release selection, official repository download URL and retry availability after an offline update-check failure. Full existing menu/chat/720p suite passed as well.
+- A real Godot HTTPRequest to the public GitHub releases API passed. Test profiles isolate the update cache. No update was installed automatically or external browser opened during the tests.
+- Native tool tutorial hints remain shared-progress behavior. No per-player tutorial redesign or crash-recovery claim is made.

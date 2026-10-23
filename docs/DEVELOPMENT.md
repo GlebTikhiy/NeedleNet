@@ -31,3 +31,6 @@ Test commands deliberately mutate worlds. Use the isolated copy and generated pr
 `python tests/run_motion_probe.py` renders native walking, sprinting, a fixed-skeleton walking segment, and stopping while looking down. The fixed-pose segment is deliberate test instrumentation; production does not freeze animation. The native camera keeps updating throughout. It checks alignment to the native camera's interpolation offset, rather than requiring the body to remain at the raw physics origin.
 
 For pixel-level verification, install the optional analysis dependencies from `tests/requirements-motion.txt` and run `python tests/check_motion_frames.py`. This checks the red host torso silhouette in the fixed-pose frames. It caught a pre-draw transform change reaching the renderer too late even when scene-graph coordinates looked correct. Screenshots and logs remain in ignored `local/motion/current/`.
+
+
+`python tests/run_recovery.py` tests manual snapshot completion, host send reporting and retry after an injected expired-deadline state on four local clients. Update checks are disabled automatically under NEEDLENET_TEST=1, while explicit manual checks remain available. `tests/update_live.gd` is a SceneTree driver for a real HTTP query; it neither opens a browser nor installs files.

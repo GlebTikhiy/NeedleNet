@@ -1,11 +1,11 @@
-# NeedleNet 0.1.0-preview.2
+# NeedleNet 0.1.0-preview.3
 
-- Chat now opens in the upper-left corner with a translucent background and compact controls. Recent messages appear there without opening the input, then disappear after 10 seconds. Full history stays available with Y.
-- Fix first-person body jitter when looking down while walking or running. The body now belongs to the player transform alongside the camera, and applies the native camera interpolation offset before the renderer receives transforms.
-- Preserve the existing leg animation and remote-player network interpolation.
+- Player names now shrink with distance instead of dominating distant avatars. Tool captions are shown only nearby, and names fade out over 24–32 m.
+- Manual world refresh reports what happened: the host sees how many snapshots were sent; guests see application completion or a 15-second timeout that permits retry. Networking already synchronizes the world automatically.
+- New-version checks use the public GitHub release API, cached for one hour. An available update shows a notice and a button opening its official download page. No files are replaced during gameplay.
 
-A rendered native-controller regression reproduced up to 0.07 m of local-body lag while walking and 0.117 m while running before the fix. The final test verifies zero view-alignment error; the fixed-pose rendered silhouette varies by only 1 pixel with native camera smoothing active. Chat layout and transparency are checked at 720p.
+Four-client recovery checks passed for snapshot application, host send status, timeout state and retry. UI/version-comparison tests and a real GitHub query passed. A player reported successful Steam invitations and co-op play; that report is distinguished from local automated tests.
 
-All players should install this version together. Requires Windows Steam Demo build 25963876. Extract `NeedleNet-0.1.0-preview.2-Windows.zip`, close the game and run `Install.cmd`. The installer backs up the previous mod and configuration.
+Native tool tutorial hints still follow shared progression. They have not been rewritten in this preview. Long sessions and host-crash recovery remain outside current verification.
 
-This remains a preview. Separate-PC Steam invitations, long sessions and host-crash recovery need further testing. Core mod credits and licenses are preserved in LICENSE and NOTICE.md.
+Every participant should use the same version. Requires Windows Steam Demo build 25963876. Extract `NeedleNet-0.1.0-preview.3-Windows.zip`, close the game and run `Install.cmd`. Existing mod/configuration files are backed up. Credits and license notices are preserved.

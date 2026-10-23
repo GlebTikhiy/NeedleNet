@@ -75,6 +75,8 @@ var _show_ips := false  # never show addresses unless asked (streamer safety)
 var _ip_box: VBoxContainer
 var _join_btn: Button
 var _leave_btn: Button
+var _update_btn: Button
+var _update_status: Label
 var _resync_btn: Button
 var _ips_label: Label
 
@@ -457,6 +459,10 @@ func _build_panel() -> void:
 	_lobby_rules = _lobby_label(mp.t("lobby_rules"), 13, Color(0.83, 0.86, 0.78))
 	rule_panel.add_child(_lobby_rules)
 	_lobby_body.add_child(rule_panel)
+	_update_status = _lobby_label("", 14, COL_DIM)
+	_lobby_body.add_child(_update_status)
+	_update_btn = _button("", func() -> void: mp.updater.open_or_check())
+	_lobby_body.add_child(_update_btn)
 	_close_btn = _button(mp.t("close"), close_panel)
 	_lobby_stack.add_child(_close_btn)
 	for button in [_steam_host_btn, _invite_btn, _lobby_play, _ip_toggle, _host_btn, _join_btn, _ips_btn, _resync_btn, _leave_btn, _close_btn]:
@@ -1401,6 +1407,7 @@ func _clock() -> float:
 # Button and label text is set when the panel is built; re-apply it so a
 # language change in the game's options shows up without a restart.
 func _apply_texts() -> void:
+	refresh_updates()
 	_title_label.text = _menu_text("session") if mp.active() else mp.t("title")
 	_subtitle_label.text = mp.t("lobby_subtitle")
 	_lobby_capacity.text = mp.t("lobby_capacity") % mp.MAX_PEERS
@@ -1416,7 +1423,8 @@ func _apply_texts() -> void:
 	_host_btn.text = mp.t("create_server")
 	_join_btn.text = mp.t("join")
 	_leave_btn.text = mp.t("disconnect")
-	_resync_btn.text = mp.t("resync")
+	_resync_btn.text = "Обновить состояние мира" if TranslationServer.get_locale().begins_with("ru") else "Refresh world state"
+	_resync_btn.tooltip_text = "Мир синхронизируется автоматически. Используйте при заметном рассинхроне." if TranslationServer.get_locale().begins_with("ru") else "The world syncs automatically. Use this only to recover a visible mismatch."
 	_close_btn.text = mp.t("close")
 	_help_label.text = mp.t("now_load") if mp.is_host else mp.t("wait_hint_save")
 	_name_edit.placeholder_text = mp.t("name_hint")
@@ -1488,7 +1496,7 @@ func refresh() -> void:
 	_host_btn.disabled = on
 	_join_btn.disabled = on
 	_leave_btn.disabled = not on
-	_resync_btn.disabled = not (on and mp.in_world())
+	_resync_btn.disabled = not (on and mp.in_world()) or mp._resync_pending
 	_name_edit.editable = not on
 	_ip_edit.editable = not on
 	_refresh_lobby_players()
@@ -1651,3 +1659,15 @@ func _find_mp_button(n: Node) -> Button:
 					return c
 		stack.append_array(c.get_children())
 	return null
+
+
+func refresh_updates() -> void:
+	if _update_btn == null or _update_status == null:
+		return
+	var ru := TranslationServer.get_locale().begins_with("ru")
+	var update: Node = mp.updater
+	_update_btn.text = ("Скачать обновление" if ru else "Download update") if is_instance_valid(update) and not update.available.is_empty() else ("Проверить обновления" if ru else "Check for updates")
+	_update_btn.disabled = is_instance_valid(update) and update.busy
+	_update_status.text = update.status if is_instance_valid(update) else ""
+	_update_status.visible = not _update_status.text.is_empty()
+	_queue_lobby_layout()

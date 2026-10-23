@@ -36,7 +36,18 @@ func _process(delta: float) -> bool:
 			last_command = text
 			var command: Variant = JSON.parse_string(text)
 			if command is Dictionary:
-				if command.get("action") == "chat":
+				if command.get("action") == "resync":
+					if bool(command.get("corrupt", false)):
+						var h: PackedFloat32Array = mp.world_sync.field.heights
+						h[0] -= 0.5
+						mp.world_sync.field.heights = h
+					mp.request_resync()
+				elif command.get("action") == "resync_timeout":
+					mp._resync_pending = true
+					mp._resync_seed = mp._outgoing_world_seed()
+					mp._resync_deadline = Time.get_ticks_msec() - 1
+					mp._check_resync_timeout()
+				elif command.get("action") == "chat":
 					mp.send_chat(str(command.get("text", "")))
 				elif command.get("action") == "money" and mp.in_world():
 					root.get_node("GameState").money += 17.0
@@ -167,6 +178,8 @@ func _process(delta: float) -> bool:
 			for id in mp.world_sync.avatars:
 				pose_x[mp.player_name(id)] = mp.world_sync.avatars[id].global_position.x
 			state["pose_x"] = pose_x
+		state["resync_pending"] = mp._resync_pending
+		state["status"] = mp.ui._status.text
 		state["chat"] = mp.ui._chat_lines
 		state["recent_chat"] = mp.ui._chat_recent.get_parsed_text()
 		state["recent_visible"] = mp.ui._chat_recent.visible
