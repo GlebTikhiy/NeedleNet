@@ -9,12 +9,17 @@ var world_started := false
 var complete := false
 var last_command := ""
 var last_tool_id := 0
+var frame_samples: Array[float] = []
+var factory_job := "idle"
+var previous_frame_usec := 0
+var last_command_id := 0
 var connect_port := int(OS.get_environment("NEEDLENET_CONNECT_PORT")) if OS.get_environment("NEEDLENET_CONNECT_PORT") != "" else 27841
 
 func _initialize() -> void:
 	call_deferred("start")
 
 func start() -> void:
+	Engine.max_fps = 60
 	mp = root.get_node("MPMod")
 	mp.my_name = role
 	if role == "host":
@@ -28,6 +33,10 @@ func _process(delta: float) -> bool:
 	if not started:
 		return false
 	elapsed += delta
+	var now_usec := Time.get_ticks_usec()
+	if previous_frame_usec > 0:
+		frame_samples.append((now_usec - previous_frame_usec) / 1000.0)
+	previous_frame_usec = now_usec
 	report_tick += delta
 	var command_path := "user://nn_command.json"
 	if FileAccess.file_exists(command_path):
@@ -36,7 +45,54 @@ func _process(delta: float) -> bool:
 			last_command = text
 			var command: Variant = JSON.parse_string(text)
 			if command is Dictionary:
-				if command.get("action") == "resync":
+				last_command_id = int(command.get("id", 0))
+				if command.get("action") == "quit_test":
+					quit(0)
+				elif command.get("action") == "partial_belt_probe" and mp.in_world():
+					partial_belt_probe()
+				elif command.get("action") == "stress_view" and mp.in_world():
+					if "intro" in mp.world_sync.world and is_instance_valid(mp.world_sync.world.intro):
+						mp.world_sync.world.intro._finish()
+					var camera := Camera3D.new()
+					mp.world_sync.world.add_child(camera)
+					camera.global_position = Vector3(-28, 70, 35)
+					camera.look_at(Vector3(-28, 6, -28))
+					camera.make_current()
+					Engine.max_fps = 60
+				elif command.get("action") == "capture_factory" and mp.in_world():
+					capture_factory()
+				elif command.get("action") == "stress_factory" and mp.in_world():
+					stress_factory(int(command.get("belts", 128)), int(command.get("cargo", 1024)), bool(command.get("loops", false)))
+				elif command.get("action") == "fund" and mp.in_world():
+					root.get_node("GameState").money = 100000.0
+				elif command.get("action") == "buy_tech" and mp.in_world():
+					var tech: Node = root.get_node("Tech")
+					for entry in ProjectSettings.get_global_class_list():
+						if entry.class == "TechTree":
+							var tree: Script = load(entry.path)
+							print("NN_BELT_CARD ", tree.nodes().get("belt_speed"), " reason=", tech.can_buy("belt_speed"))
+							for id in tree.ids():
+								if tech.can_buy(id).get("ok", false):
+									print("NN_TECH_BUY ", id, " ", tech.buy(id))
+									break
+				elif command.get("action") == "grant_guest" and mp.in_world():
+					for pid in mp.players:
+						if mp.player_name(pid) == "guest1":
+							print("NN_GUEST_GRANT ", mp.world_sync.tools_sync.grant(pid, "broom"))
+				elif command.get("action") == "inspect_native" and mp.in_world():
+					var dump := {}
+					for label in ["builds", "props", "tech"]:
+						var target: Node = mp.world_sync.builds if label == "builds" else (mp.world_sync.props_sync.props if label == "props" else root.get_node("Tech"))
+						var scripts := []
+						var current: Script = target.get_script()
+						while current != null:
+							scripts.append({"path": current.resource_path, "source_length": current.get_source_code().length(), "methods": current.get_script_method_list()})
+							current = current.get_base_script()
+						dump[label] = scripts
+					var file := FileAccess.open("user://native-api.json", FileAccess.WRITE)
+					file.store_string(JSON.stringify(dump))
+					file.close()
+				elif command.get("action") == "resync":
 					if bool(command.get("corrupt", false)):
 						var h: PackedFloat32Array = mp.world_sync.field.heights
 						h[0] -= 0.5
@@ -91,6 +147,8 @@ func _process(delta: float) -> bool:
 					mp.world_sync._hay_cand[index] = true
 					print("NN_DIG_MUTATION ", index)
 				elif command.get("action") == "save" and mp.in_world():
+					if bool(command.get("disable_autosave", false)) and "autosave_enabled" in mp.world_sync.world:
+						mp.world_sync.world.autosave_enabled = false
 					mp.world_sync.world.save_now()
 					print("NN_SAVE_REQUESTED")
 				elif command.get("action") == "drop_tool" and mp.in_world():
@@ -120,12 +178,29 @@ func _process(delta: float) -> bool:
 	if role == "host" and not world_started and mp.players.size() == 4:
 		world_started = true
 		var saves = root.get_node("SaveManager")
-		print("NN_NEW_WORLD ", saves.begin_new_game(0, true))
-		change_scene_to_file(mp.GAME_SCENE)
+		if OS.get_environment("NEEDLENET_RESTORE") == "1":
+			print("NN_LOAD_WORLD ", saves.begin_load(0))
+			root.get_node("Loading").enter_scene(mp.GAME_SCENE)
+		else:
+			print("NN_NEW_WORLD ", saves.begin_new_game(0, true))
+			change_scene_to_file(mp.GAME_SCENE)
 	if report_tick > 3.0:
 		report_tick = 0.0
 		var state := {"role": role, "players": mp.players.size(), "phase": mp.phase, "world": mp.in_world()}
+		state["elapsed"] = elapsed
+		state["last_command_id"] = last_command_id
+		state["factory_job"] = factory_job
+		frame_samples.sort()
+		state["frame_p95_ms"] = frame_samples[int((frame_samples.size() - 1) * 0.95)] if not frame_samples.is_empty() else 0
+		state["frame_max_ms"] = frame_samples.back() if not frame_samples.is_empty() else 0
+		state["static_memory"] = OS.get_static_memory_usage()
+		state["nodes"] = get_node_count()
+		state["drawn_frames"] = Engine.get_frames_drawn()
+		state["fps"] = Engine.get_frames_per_second()
+		state["draw_calls"] = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+		frame_samples.clear()
 		if mp.in_world():
+			state["tech"] = root.get_node("Tech").ranks.duplicate()
 			state["avatars"] = mp.world_sync.avatars.size()
 			state["seed"] = root.get_node("GameState").run_seed
 			state["money"] = root.get_node("GameState").money
@@ -168,6 +243,24 @@ func _process(delta: float) -> bool:
 						var record: Dictionary = path.run.record(index)
 						records.append({"seq": record.seq, "strands": record.strands, "s": record.s})
 			state["belt_records"] = records
+			state["cargo_strands"] = 0.0
+			state["cargo_count"] = records.size() + props_state.size()
+			var sequences := {}
+			state["duplicate_belt_ids"] = 0
+			state["belt_position_sum"] = 0.0
+			for record in records:
+				state["cargo_strands"] += float(record.strands)
+				state["belt_position_sum"] += float(record.s)
+				if sequences.has(record.seq):
+					state["duplicate_belt_ids"] += 1
+				sequences[record.seq] = true
+			state["belt_strands"] = state["cargo_strands"]
+			for item_state in props_state.values():
+				state["cargo_strands"] += float(item_state.strands)
+			state["belt_cargo_count"] = records.size()
+			if OS.get_environment("NEEDLENET_COMPACT") == "1":
+				state.erase("props")
+				state.erase("belt_records")
 			state["position"] = var_to_str(mp.world_sync.player.global_position)
 			state["position_x"] = mp.world_sync.player.global_position.x
 			var poses := {}
@@ -188,3 +281,78 @@ func _process(delta: float) -> bool:
 		f.store_string(JSON.stringify(state))
 		f.close()
 	return false
+
+func stress_point(index: int, end: bool, loops: bool) -> Vector3:
+	if loops:
+		var loop_id := index / 4
+		var corner := (index + (1 if end else 0)) % 4
+		var offsets := [Vector3(0, 0, 0), Vector3(0, 0, 4), Vector3(4, 0, 4), Vector3(4, 0, 0)]
+		return Vector3(-55 + (loop_id % 8) * 7, 6, -55 + (loop_id / 8) * 7) + offsets[corner]
+	var col := index % 16
+	var row := index / 16
+	return Vector3(-55 + col * 2.5, 1, -50 + row * 4 + (3 if end else 0))
+
+func capture_factory() -> void:
+	await RenderingServer.frame_post_draw
+	print("NN_FACTORY_SCREENSHOT ", root.get_texture().get_image().save_png("user://stress-factory.png"))
+
+func partial_belt_probe() -> void:
+	var paths := []
+	var source: Node = null
+	for path in mp.world_sync.world.find_children("*", "Node", true, false):
+		if path.has_method("save_ends") and "records_props" in path and path.records_props:
+			paths.append(path)
+			if source == null and path.run.count() > 0:
+				source = path
+	if source == null or paths.size() < 2:
+		return
+	var target: Node = paths[0] if paths[0] != source else paths[1]
+	var rows := []
+	for index in range(source.run.first(), source.run.first() + source.run.count()):
+		var row: Dictionary = source.run.record(index)
+		row["gap"] = source.run.gap_of(index)
+		rows.append(row)
+	var routes: Script = load("res://mods/multiplayer/mp_belt_routes.gd")
+	var ends: PackedVector3Array = source.save_ends()
+	var entry := {"a": ends[0], "b": ends[1], "line": source._line, "owner": routes.owner_key(mp.world_sync, source), "records": rows}
+	var seq: int = rows[0].seq
+	# Reproduce a predicted seam transfer before the older source update arrives.
+	for path in paths:
+		for index in range(path.run.first() + path.run.count() - 1, path.run.first() - 1, -1):
+			if path.run.seq_of(index) == seq:
+				path.run.remove_at(index)
+	var prediction: Dictionary = rows[0].duplicate(true)
+	prediction["s"] = 0.0
+	routes.restore(target, [prediction])
+	var accepted: bool = mp.world_sync.belts_sync._apply_belts([entry], false)
+	var copies := 0
+	for path in paths:
+		for index in range(path.run.first(), path.run.first() + path.run.count()):
+			if path.run.seq_of(index) == seq:
+				copies += 1
+	var file := FileAccess.open("user://partial-belt-probe.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify({"accepted": accepted, "copies": copies, "seq": seq}))
+	file.close()
+
+func stress_factory(belts: int, cargo: int, loops: bool = false) -> void:
+	factory_job = "building"
+	var world: Node = mp.world_sync
+	# Independent native belts with unique line identities, inside the field.
+	for index in belts:
+		if not is_instance_valid(world):
+			factory_job = "aborted"
+			return
+		world.builds.add_conveyor(stress_point(index, false, loops), stress_point(index, true, loops), 1000 + (index / 4 if loops else index))
+		if index % 16 == 15:
+			await process_frame
+	factory_job = "spawning"
+	for index in cargo:
+		if not is_instance_valid(world):
+			factory_job = "aborted"
+			return
+		var belt := index % belts
+		var at := stress_point(belt, false, loops).lerp(stress_point(belt, true, loops), 0.15 + (index / belts) * 0.04) + Vector3(0, 0.5, 0)
+		world.props_sync.props.spawn("hay_wad", Transform3D(Basis.IDENTITY, at), {"strands": 50})
+		if index % 16 == 15:
+			await process_frame
+	factory_job = "done"

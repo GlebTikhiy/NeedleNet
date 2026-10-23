@@ -1,5 +1,11 @@
 # NeedleNet changes
 
+## 0.1.0-preview.4
+
+- Prevent guest-only duplicate belt cargo after a predicted seam transfer followed by a partial source-belt snapshot. Remove the older predicted copy before restoring authoritative records.
+- Add native-physics factory load coverage: 256 conveyor segments, 4,096 physical hay wads, one rendered host and three headless guests.
+- Verify host-crash checkpoint restoration, short and long network outages, shared purchase state and personal tool ownership. See the source repository release QA report for measured results and limits.
+
 ## 0.1.0-preview.3
 
 - Use perspective-scaled remote player names, fade them over 24–32 m and show tool captions only within 12 m.

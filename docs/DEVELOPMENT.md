@@ -34,3 +34,7 @@ For pixel-level verification, install the optional analysis dependencies from `t
 
 
 `python tests/run_recovery.py` tests manual snapshot completion, host send reporting and retry after an injected expired-deadline state on four local clients. Update checks are disabled automatically under NEEDLENET_TEST=1, while explicit manual checks remain available. `tests/update_live.gd` is a SceneTree driver for a real HTTP query; it neither opens a browser nor installs files.
+
+## Factory stress and failure recovery
+
+See [release QA](RELEASE-QA.md) for the larger native factory, host process termination, long network outage and mutation-pair regression. `run_release_candidate.py` needs the optional `tests/requirements-qa.txt` dependency and the Co-op Anything UDP relay. `run_shutdown.py` verifies graceful process exits separately from forced test cleanup.

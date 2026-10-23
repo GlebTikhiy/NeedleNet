@@ -17,7 +17,14 @@ def user_dir(role):
 def launch(role):
     env = os.environ.copy()
     env.update(APPDATA=str(ROOT / 'local/profiles' / run_id / role), NEEDLENET_TEST='1', NEEDLENET_ROLE=role)
-    p = subprocess.Popen([str(GAME / 'FindTheNeedle.exe'), '--headless', '--path', str(GAME), '--script', str(ROOT / 'tests/session_test.gd'), '--log-file', str(ROOT / f'local/{role}.log')], env=env, cwd=GAME, creationflags=subprocess.CREATE_NO_WINDOW)
+    rendered = role == 'host' and os.environ.get('NN_RENDER_HOST') == '1'
+    startup = None
+    if rendered:
+        startup = subprocess.STARTUPINFO()
+        startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startup.wShowWindow = subprocess.SW_HIDE
+    display = ['--windowed', '--resolution', '1280x720'] if rendered else ['--headless']
+    p = subprocess.Popen([str(GAME / 'FindTheNeedle.exe'), *display, '--path', str(GAME), '--script', str(ROOT / 'tests/session_test.gd'), '--log-file', str(ROOT / f'local/{role}.log')], env=env, cwd=GAME, creationflags=subprocess.CREATE_NO_WINDOW, startupinfo=startup)
     processes.append(p)
     print(f'{role} pid={p.pid}', flush=True)
 
@@ -42,7 +49,10 @@ def wait_for(predicate, timeout=150):
     raise RuntimeError(f'Timed out, states={states()}')
 
 def command(role, action, **kwargs):
-    (user_dir(role) / 'nn_command.json').write_text(json.dumps({'action': action, 'id': time.time_ns(), **kwargs}))
+    # Godot JSON numbers use doubles; microseconds stay exact below 2**53.
+    command_id = time.time_ns() // 1000
+    (user_dir(role) / 'nn_command.json').write_text(json.dumps({'action': action, 'id': command_id, **kwargs}))
+    return command_id
 
 def ready(ss):
     return all(s.get('world') and s.get('players') == 4 and s.get('avatars') == 3 for s in ss) and len({s['seed'] for s in ss}) == 1

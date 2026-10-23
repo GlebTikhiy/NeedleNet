@@ -317,6 +317,7 @@ func _apply_belts(entries: Array, full_snapshot: bool = true) -> bool:
 		for assignment in resolved.assignments:
 			for seq in _received_sequences.get(assignment[0].get_instance_id(), []):
 				_host_sequences.erase(seq)
+		_remove_mirrored_duplicates(resolved.assignments)
 	var restored := 0
 	for assignment in resolved.assignments:
 		Routes.restore(assignment[0], assignment[1])
@@ -337,6 +338,35 @@ func _apply_belts(entries: Array, full_snapshot: bool = true) -> bool:
 			rows += entry["records"].size()
 		print("[MPBELTS] %d paths, %d rows -> %s" % [entries.size(), rows, got])
 	return true
+
+
+func _remove_mirrored_duplicates(assignments: Array) -> void:
+	# Prediction may already have moved a record onto a different path. A
+	# partial snapshot restores only its selected paths, so remove the older
+	# predicted copy elsewhere before inserting the authoritative record.
+	var incoming := {}
+	var replaced := {}
+	for assignment in assignments:
+		replaced[assignment[0].get_instance_id()] = true
+		for row in assignment[1]:
+			incoming[row.seq] = true
+	if incoming.is_empty():
+		return
+	for path in BeltPath._live:
+		if not is_instance_valid(path) or not path.is_inside_tree() or replaced.has(path.get_instance_id()):
+			continue
+		var removed := false
+		for index in range(path.run.first() + path.run.count() - 1, path.run.first() - 1, -1):
+			var seq: int = path.run.seq_of(index)
+			if not incoming.has(seq):
+				continue
+			path.run.remove_at(index)
+			var received: Array = _received_sequences.get(path.get_instance_id(), [])
+			received.erase(seq)
+			removed = true
+		if removed:
+			BeltPath._put_load(path.get_instance_id(), path._ride_load())
+			path.wake()
 
 
 func _hold_mirrored_path(item: Node) -> void:

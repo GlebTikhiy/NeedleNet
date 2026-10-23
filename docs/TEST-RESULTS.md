@@ -1,4 +1,8 @@
-# NeedleNet test results — 2026-10-22
+# NeedleNet test results — 2026-10-23
+
+## Version 0.1.0-preview.4
+
+Release hardening found and fixed guest-only duplicate belt records after predicted seam transfers and partial updates. Four-client native factory load, impaired networking, actual host termination and checkpoint recovery were exercised. See [the release QA report](RELEASE-QA.md) for scenarios, measured frame intervals, reproduction and remaining scope.
 
 ## Version 0.19.6-NeedleNet.4
 

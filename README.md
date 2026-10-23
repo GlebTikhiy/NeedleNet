@@ -6,7 +6,7 @@
 
 [Русский / Russian](README-RU.md) · [Recording guide](docs/CREATORS.md) · [Credits](NOTICE.md)
 
-**0.1.0-preview.3 · Windows · Steam demo build 25963876 · Preview**
+**0.1.0-preview.4 · Windows · Steam demo build 25963876 · Preview**
 
 ## Play together
 
@@ -20,7 +20,7 @@ Every player needs the game and the same NeedleNet version. This fork also inclu
 
 ## Download and install
 
-Download **NeedleNet-0.1.0-preview.3-Windows.zip** from [**Releases**](https://github.com/GlebTikhiy/NeedleNet/releases/tag/v0.1.0-preview.3), then extract it. GitHub's automatic “Source code” ZIP contains the development project; players should use the named Windows ZIP instead.
+Download **NeedleNet-0.1.0-preview.4-Windows.zip** from [**Releases**](https://github.com/GlebTikhiy/NeedleNet/releases/tag/v0.1.0-preview.4), then extract it. GitHub's automatic “Source code” ZIP contains the development project; players should use the named Windows ZIP instead.
 
 1. Close the game and back up your saves.
 2. Double-click **Install.cmd** in the extracted folder. The installer looks for the game in Steam libraries and asks for its folder if necessary.
@@ -30,7 +30,7 @@ The installer checks the supported game build and backs up the previous mod/conf
 
 ## Preview status
 
-Four local game clients passed synchronization, save/load, chat and impaired-network tests. A player has also reported successful Steam invitations and co-op play; our automated coverage remains local. Long playthroughs and host-crash recovery still need testing. A rendered native-controller test reproduces the former first-person body lag and verifies view alignment and stable rendered geometry after the fix; broader real-play coverage is still pending.
+Four local game clients passed synchronization, save/load, chat and impaired-network tests. A player has also reported successful Steam invitations and co-op play; our automated coverage remains local. Host-crash checkpoint recovery and a 256-conveyor / 4,096-object factory have now passed automated checks; long playthroughs and all production chains remain unverified. A rendered native-controller test reproduces the former first-person body lag and verifies view alignment and stable rendered geometry after the fix; broader real-play coverage is still pending.
 
 NeedleNet uses independent `MAJOR.MINOR.PATCH` versions; game and upstream versions are tracked separately. The source repository documents the policy in `docs/VERSIONING.md`.
 
