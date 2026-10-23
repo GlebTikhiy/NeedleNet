@@ -4,7 +4,7 @@
 
 Неофициальный кооператив для **Find The Needle Demo**: один хост и до трёх друзей в общем мире.
 
-**Версия .5 · Windows · Steam Demo, build 25963876 · Предварительная сборка**
+**Версия 0.1.0-preview.1 · Windows · Steam Demo, build 25963876 · Предварительная сборка**
 
 ## Что внутри
 
@@ -18,7 +18,7 @@
 
 ## Скачать и установить
 
-В разделе [**Releases**](https://github.com/GlebTikhiy/NeedleNet/releases/tag/v0.19.6.5-preview) скачайте **NeedleNet-0.19.6.5-Windows-preview.zip** и распакуйте его. Автоматический архив GitHub «Source code» предназначен для разработки; игрокам нужен ZIP с указанным названием.
+В разделе [**Releases**](https://github.com/GlebTikhiy/NeedleNet/releases/tag/v0.1.0-preview.1) скачайте **NeedleNet-0.1.0-preview.1-Windows.zip** и распакуйте его. Автоматический архив GitHub «Source code» предназначен для разработки; игрокам нужен ZIP с указанным названием.
 
 1. Закройте игру и сделайте резервную копию сохранений.
 2. Откройте **Install.cmd** двойным щелчком. Установщик найдёт игру в библиотеках Steam; если не получится, попросит путь к папке с `FindTheNeedle.exe`.

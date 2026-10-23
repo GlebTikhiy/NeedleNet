@@ -6,7 +6,7 @@
 
 [Русский / Russian](README-RU.md) · [Recording guide](docs/CREATORS.md) · [Credits](NOTICE.md)
 
-**0.19.6-NeedleNet.5 · Windows · Steam demo build 25963876 · Preview**
+**0.1.0-preview.1 · Windows · Steam demo build 25963876 · Preview**
 
 ## Play together
 
@@ -20,7 +20,7 @@ Every player needs the game and the same NeedleNet version. This fork also inclu
 
 ## Download and install
 
-Download **NeedleNet-0.19.6.5-Windows-preview.zip** from [**Releases**](https://github.com/GlebTikhiy/NeedleNet/releases/tag/v0.19.6.5-preview), then extract it. GitHub's automatic “Source code” ZIP contains the development project; players should use the named Windows ZIP instead.
+Download **NeedleNet-0.1.0-preview.1-Windows.zip** from [**Releases**](https://github.com/GlebTikhiy/NeedleNet/releases/tag/v0.1.0-preview.1), then extract it. GitHub's automatic “Source code” ZIP contains the development project; players should use the named Windows ZIP instead.
 
 1. Close the game and back up your saves.
 2. Double-click **Install.cmd** in the extracted folder. The installer looks for the game in Steam libraries and asks for its folder if necessary.
@@ -31,6 +31,8 @@ The installer checks the supported game build and backs up the previous mod/conf
 ## Preview status
 
 Four local game clients passed synchronization, save/load, chat and impaired-network tests. Real Steam invitations between separate PCs, long playthroughs and host-crash recovery still need testing. Avatar interpolation has automated checks; continuous walking still needs visual confirmation under real play conditions.
+
+NeedleNet uses independent `MAJOR.MINOR.PATCH` versions; game and upstream versions are tracked separately. The source repository documents the policy in `docs/VERSIONING.md`.
 
 The source repository includes the detailed test report in `docs/TEST-RESULTS.md`.
 

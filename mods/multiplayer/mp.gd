@@ -9,7 +9,7 @@ const Progression = preload("res://mods/multiplayer/mp_progression.gd")
 const Balance = preload("res://mods/multiplayer/mp_balance.gd")
 const VacUpgrades = preload("res://mods/multiplayer/mp_vac_upgrades.gd")
 
-const VERSION := "0.19.6-NeedleNet.5"
+const VERSION := "0.1.0-preview.1"
 const CONNECT_TIMEOUT := 30.0
 const DEFAULT_PORT := 7777
 const MAX_PEERS := 4  # players in a session, host included (Steam counts the same way)

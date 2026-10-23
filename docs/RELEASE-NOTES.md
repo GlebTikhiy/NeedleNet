@@ -1,4 +1,4 @@
-# NeedleNet .5 — Windows preview
+# NeedleNet 0.1.0-preview.1 — Windows preview
 
 Find The Needle Demo with up to four players in a shared world.
 
@@ -10,7 +10,7 @@ Find The Needle Demo with up to four players in a shared world.
 
 Requires Windows Steam Demo build 25963876. Every participant needs the same mod version. The base mod includes additional machines, upgrades and balance changes.
 
-Download `NeedleNet-0.19.6.5-Windows-preview.zip`, extract it, close the game and double-click `Install.cmd`. Launch through Steam afterward. The installer backs up the previous mod and configuration.
+Download `NeedleNet-0.1.0-preview.1-Windows.zip`, extract it, close the game and double-click `Install.cmd`. Launch through Steam afterward. The installer backs up the previous mod and configuration.
 
 Four local game clients passed core synchronization, save/load, chat and bad-network scenarios. Separate-PC Steam invitations, long sessions, host crash recovery and visual confirmation of continuous motion remain unverified. This is a preview release.
 

@@ -1,5 +1,11 @@
 # NeedleNet changes
 
+## 0.1.0-preview.1
+
+- Adopt independent Semantic Versioning for NeedleNet. This preview replaces the former `0.19.6-NeedleNet.5` label; gameplay is unchanged.
+- Update the in-game version, release tag, download names and documentation. All players must use the same version label.
+
+
 ## 0.19.6-NeedleNet.5
 
 - Separate host actions for new game and load; disable load when no saves exist. Keep new game available with existing saves and focus it first.
