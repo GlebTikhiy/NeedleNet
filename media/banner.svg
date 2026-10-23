@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+<title id="title">NeedleNet</title><desc id="desc">Four players, one shared world. Unofficial co-op for Find The Needle Demo.</desc>
+<rect width="1280" height="400" rx="24" fill="#111810"/>
+<path d="M44 338H1236" stroke="#3a4930" stroke-width="2"/>
+<text x="60" y="82" font-family="Segoe UI,Arial,sans-serif" font-size="20" letter-spacing="5" fill="#b4bda7">FIND THE NEEDLE DEMO · COMMUNITY CO-OP</text>
+<text x="56" y="207" font-family="Segoe UI,Arial,sans-serif" font-size="112" font-weight="700" fill="#e6c567">NeedleNet</text>
+<text x="62" y="274" font-family="Segoe UI,Arial,sans-serif" font-size="30" fill="#f0f1e8">Four players. One shared world.</text>
+<path d="M917 190H1175" stroke="#526046" stroke-width="4"/>
+<circle cx="917" cy="190" r="25" fill="#ed6657"/><circle cx="1003" cy="190" r="25" fill="#6bb5dc"/><circle cx="1089" cy="190" r="25" fill="#e6c567"/><circle cx="1175" cy="190" r="25" fill="#8ec884"/>
+<text x="62" y="372" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#b4bda7">WINDOWS · STEAM DEMO · UP TO 4 PLAYERS</text>
+<text x="1038" y="372" font-family="Segoe UI,Arial,sans-serif" font-size="19" fill="#e6c567">PREVIEW .5</text>
+</svg>

@@ -1,0 +1,12 @@
+dist/
+__pycache__/
+*.log
+*.exe
+*.dll
+*.pck
+mp_settings.cfg
+.DS_Store
+
+lab/
+local/
+tools/

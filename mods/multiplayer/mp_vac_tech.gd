@@ -1,0 +1,39 @@
+extends "res://autoload/tech.gd"
+
+const VacUpgrades = preload("res://mods/multiplayer/mp_vac_upgrades.gd")
+const Progression = preload("res://mods/multiplayer/mp_progression.gd")
+
+func vac_capacity() -> int:
+	return VacUpgrades.capacity(rank_of("vac_bin"), super.vac_capacity())
+
+func vac_suck_rate() -> float:
+	return VacUpgrades.suction(rank_of("vac_suction"), super.vac_suck_rate())
+
+func belt_portion() -> int:
+	return Progression.belt_portion(rank_of("belt_portion"))
+
+func hay_lift_speed_scale() -> float:
+	return Progression.transport_scale(rank_of("hay_lift_speed"))
+
+func hay_stairs_speed_scale() -> float:
+	return Progression.transport_scale(rank_of("hay_stairs_speed"))
+
+func distributor_speed_scale() -> float:
+	return Progression.distributor_scale(rank_of("distributor_speed"))
+
+func from_dict(data: Dictionary, refund_v5_truncation: bool = false) -> void:
+	VacUpgrades.new().ensure_cards()
+	Progression.new().ensure_cards()
+	for name in ["FTNProductionSpeed", "FTNToolUpgrades"]:
+		var addon := get_node_or_null("/root/" + name)
+		if is_instance_valid(addon) and addon.has_method("ensure_extensions"):
+			addon.ensure_extensions()
+	preload("res://mods/multiplayer/mp_balance.gd").ensure_cards()
+	super.from_dict(data, refund_v5_truncation)
+	preload("res://mods/multiplayer/mp_balance.gd").apply_credit()
+
+func scan_seconds(base: float) -> float:
+	var card: Dictionary = TechTree.nodes().get("scan_speed", {})
+	var maximum: int = card.get("costs", []).size()
+	var reference: float = Cfg.SCANNER_TIERS[1]["scan_seconds"]
+	return base * Progression.scanner_cycle_scale(rank_of("scan_speed"), maximum, reference) / specimen_scale("scan_speed")

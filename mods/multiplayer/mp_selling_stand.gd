@@ -1,0 +1,165 @@
+extends "res://scripts/world/hay_selling_stand.gd"
+
+const NATIVE_STAND = preload("res://scripts/world/hay_selling_stand.gd")
+var _visual_clock := 0.0
+var _visual_hay := 0
+var _visual_worth := 0.0
+var _visual_payouts: Array = []
+var _visual_sequence := 0
+var _received_sequence := 0
+var _received_epoch := ""
+var mp_station_id := 1
+
+
+static func install(node: Node, patch: Script) -> void:
+	if not is_instance_valid(node) or node.get_script() != NATIVE_STAND:
+		return
+	var saved := {}
+	for property in node.get_property_list():
+		if int(property.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			saved[property.name] = node.get(property.name)
+	node.set_script(patch)
+	for key in saved:
+		node.set(key, saved[key])
+
+
+func _can_sell() -> bool:
+	var mp := get_node_or_null("/root/MPMod")
+	return not is_instance_valid(mp) or not mp.active() or mp.is_host
+
+
+func _take_record() -> void:
+	if _can_sell():
+		super._take_record()
+
+
+func _collect() -> void:
+	if _can_sell():
+		super._collect()
+
+
+func _commit() -> void:
+	if _can_sell():
+		super._commit()
+
+
+func sell_loose_strand(body: RigidBody3D) -> bool:
+	return super.sell_loose_strand(body) if _can_sell() else false
+
+
+func _record_scale_strands(strands: int) -> void:
+	super._record_scale_strands(strands)
+	_visual_hay += maxi(strands, 0)
+
+
+func _earn_notch(strands: float) -> void:
+	super._earn_notch(strands)
+	_visual_worth += maxf(strands, 0.0)
+
+
+func _celebrate(amount: float, coins: int, best := false, combo_best := false) -> void:
+	super._celebrate(amount, coins, best, combo_best)
+	if _visual_payouts.size() < 32:
+		_visual_payouts.append([amount, best, combo_best])
+	else:
+		_visual_payouts[-1][0] += amount
+		_visual_payouts[-1][1] = _visual_payouts[-1][1] or best
+		_visual_payouts[-1][2] = _visual_payouts[-1][2] or combo_best
+
+
+func _drop_coins(count: int) -> void:
+	if _can_sell():
+		super._drop_coins(count)
+
+
+func _physics_process(delta: float) -> void:
+	super._physics_process(delta)
+	_visual_clock += delta
+	if _visual_clock < 0.1:
+		return
+	_visual_clock = 0.0
+	if _visual_hay == 0 and _visual_worth == 0.0 and _visual_payouts.is_empty():
+		return
+	var mp := get_node_or_null("/root/MPMod")
+	if is_instance_valid(mp) and mp.active() and mp.is_host and is_instance_valid(mp.world_sync):
+		var economy: Node = mp.world_sync.economy
+		if is_instance_valid(economy) and economy.epoch != "":
+			_visual_sequence += 1
+			for peer in mp.players:
+				if peer != 1 and mp.players[peer].get("state") == "world":
+					if mp_station_id == 1:
+						mp._rx_stand_visuals.rpc_id(peer, economy.epoch, _visual_sequence,
+							_visual_hay, _visual_worth, _combo, minf(_combo_gap, Cfg.SELL_COMBO_BREAK + 1.0), _visual_payouts, mp._outgoing_world_seed())
+					else:
+						mp._rx_sale_visuals.rpc_id(peer, economy.epoch, mp_station_id, _visual_sequence,
+							_visual_hay, _visual_worth, _combo, minf(_combo_gap, Cfg.SELL_COMBO_BREAK + 1.0), _visual_payouts, mp._outgoing_world_seed())
+	_visual_hay = 0
+	_visual_worth = 0.0
+	_visual_payouts.clear()
+
+
+func apply_visuals(epoch: String, sequence: int, hay: int, worth: float,
+		combo: int, gap: float, payouts: Array) -> void:
+	if _can_sell() or sequence <= 0 or hay < 0 or combo < 0 or not is_finite(worth) \
+			or worth < 0.0 or not is_finite(gap) or gap < 0.0 or payouts.size() > 32:
+		return
+	if epoch == _received_epoch and sequence <= _received_sequence:
+		return
+	for payout in payouts:
+		if not (payout is Array) or payout.size() != 3 or not (payout[0] is float or payout[0] is int) \
+				or not is_finite(float(payout[0])) or float(payout[0]) < 0.0 \
+				or not (payout[1] is bool) or not (payout[2] is bool):
+			return
+	_received_epoch = epoch
+	_received_sequence = sequence
+	super._record_scale_strands(hay)
+	super._earn_notch(worth)
+	var previous_combo := _combo
+	_combo = combo
+	_combo_gap = gap
+	if combo != previous_combo and combo_milestone(combo):
+		_fly_combo(combo)
+	for payout in payouts:
+		super._celebrate(float(payout[0]), 0, payout[1], payout[2])
+
+func mp_can_move() -> bool:
+	if _pending > 0.0 or _pending_hay > 0.0 or _hold > 0.0 or _notch_queue > 0 or _notches > 0 or _strand_bank > 0.0 or _coins_out > 0:
+		return false
+	if is_instance_valid(_belt) and (_belt.has_strands() or not _belt._riders.is_empty() or _belt.run.count() > 0):
+		return false
+	for area in [_payout_area, _skirt_area]:
+		if is_instance_valid(area) and not area.get_overlapping_bodies().is_empty():
+			return false
+	return true
+
+func mp_move_to(pose: Transform3D) -> void:
+	if global_transform.is_equal_approx(pose):
+		return
+	var delta := pose * global_transform.affine_inverse()
+	var free_nodes := {}
+	for node in find_children("*", "Node3D", true, false):
+		if node.top_level:
+			free_nodes[node] = node.global_transform
+	for node in [_belt, get_node_or_null("BeltDrums"), get_node_or_null("BeltSupports")]:
+		if is_instance_valid(node):
+			if node == _belt:
+				_belt.clear_path()
+			remove_child(node)
+			node.queue_free()
+	if Tech.tech_changed.is_connected(_on_belt_tech_changed):
+		Tech.tech_changed.disconnect(_on_belt_tech_changed)
+	if Tech.tech_reset.is_connected(_retime_belt):
+		Tech.tech_reset.disconnect(_retime_belt)
+	if Tech.specimens_changed.is_connected(_retime_belt):
+		Tech.specimens_changed.disconnect(_retime_belt)
+	global_transform = pose
+	for node in free_nodes:
+		if is_instance_valid(node) and node.is_inside_tree():
+			node.global_transform = delta * free_nodes[node]
+	_popup_at = delta * _popup_at
+	_coins_at = delta * _coins_at
+	_coins_face = delta.basis * _coins_face
+	_footprint_known = false
+	_build_belt()
+	if is_instance_valid(_sale_fx):
+		_sale_fx.watch(_sack, _sack_mesh, _sack_fill, _coins_at - Vector3(0.0, COIN_SPOUT_UP, 0.0))

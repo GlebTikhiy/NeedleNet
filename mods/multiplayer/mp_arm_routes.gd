@@ -1,0 +1,116 @@
+extends RefCounted
+
+static func usable(path: Variant) -> bool:
+	return is_instance_valid(path) and path is BeltPath and path.is_inside_tree() \
+		and not path.is_queued_for_deletion() and path.path_length() > 0.01
+
+static func owner_of(path: BeltPath) -> Node:
+	if not usable(path):
+		return null
+	var parent := path.get_parent()
+	return parent if parent is ConveyorJoiner or parent is ConveyorSplitter else null
+
+static func paths(machine: Node, dropping := false) -> Array:
+	var result := []
+	if not is_instance_valid(machine) or machine.is_queued_for_deletion() or machine.placement_preview:
+		return result
+	if machine is ConveyorJoiner:
+		result = machine._arms.values() if dropping else machine.paths()
+	elif machine is ConveyorSplitter:
+		result = machine.routes()
+		if dropping:
+			var open := int(machine._open_side())
+			var chosen: Variant = machine.route(open)
+			if usable(chosen):
+				result = [chosen]
+	return result.filter(func(path: Variant) -> bool: return usable(path))
+
+static func all(builds: Node, dropping := false) -> Array:
+	var result := []
+	if is_instance_valid(builds):
+		for machine in builds.joiners + builds.splitters:
+			result.append_array(paths(machine, dropping))
+	return result
+
+static func point(path: BeltPath, near: Vector3, dropping := false) -> Vector3:
+	var along := path.s_at(near)
+	var owner := owner_of(path)
+	if dropping and owner is ConveyorSplitter:
+		along = minf(along, path.s_at(owner.global_position))
+	return path._point_at(along)
+
+static func closest(machine: Node, near: Vector3, dropping := false) -> BeltPath:
+	var found: BeltPath
+	var distance := INF
+	for path in paths(machine, dropping):
+		var d := point(path, near, dropping).distance_squared_to(near)
+		if d < distance:
+			distance = d
+			found = path
+	return found
+
+static func from_hit(collider: Node, near: Vector3) -> BeltPath:
+	var current := collider
+	for depth in 8:
+		if not is_instance_valid(current):
+			break
+		if current is ConveyorJoiner or current is ConveyorSplitter:
+			return closest(current, near)
+		current = current.get_parent()
+	return null
+
+static func drop_path(path: BeltPath, at: Vector3) -> BeltPath:
+	var owner := owner_of(path)
+	return closest(owner, at, true) if owner != null else path
+
+static func valid_drop(path: BeltPath, at: Vector3) -> bool:
+	var owner := owner_of(path)
+	if owner is ConveyorJoiner:
+		return path in owner._arms.values()
+	if owner is ConveyorSplitter:
+		return path.s_at(at) <= path.s_at(owner.global_position) + 0.02
+	return owner == null
+
+static func near_machines(builds: Node, from: Vector3, reach: float) -> Array:
+	var result := []
+	if not is_instance_valid(builds):
+		return result
+	for machine in builds.joiners + builds.splitters:
+		for path in paths(machine):
+			if _within_bounds(path, from, reach):
+				result.append(machine)
+				break
+	return result
+
+static func drops(builds: Node, from: Vector3, reach: float, only: BeltPath = null, nearby: Variant = null) -> Array:
+	var result := []
+	var candidates := [only] if only != null else []
+	if only == null:
+		if nearby is Array:
+			for machine in nearby:
+				candidates.append_array(paths(machine, true))
+		else:
+			candidates = all(builds, true)
+	for candidate in candidates:
+		var path: BeltPath = candidate
+		if owner_of(path) == null or not usable(path) or not _within_bounds(path, from, reach):
+			continue
+		var deck := point(path, from, true)
+		if not valid_drop(path, deck):
+			continue
+		var basis := path._basis_at(path.s_at(deck))
+		var at := deck + basis.y * 0.26
+		var distance := from.distance_squared_to(at)
+		if distance < reach * reach:
+			result.append({"conveyor": path, "point": at,
+				"forward": -basis.z, "distance2": distance})
+	result.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.distance2 < b.distance2)
+	return result
+
+static func _within_bounds(path: BeltPath, from: Vector3, reach: float) -> bool:
+	if path._line.size() < 2:
+		return true
+	var bounds := AABB(path._line[0], Vector3.ZERO)
+	for point in path._line:
+		bounds = bounds.expand(point)
+	return bounds.grow(reach + 0.27).has_point(from)
