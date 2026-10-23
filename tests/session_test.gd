@@ -168,6 +168,8 @@ func _process(delta: float) -> bool:
 				pose_x[mp.player_name(id)] = mp.world_sync.avatars[id].global_position.x
 			state["pose_x"] = pose_x
 		state["chat"] = mp.ui._chat_lines
+		state["recent_chat"] = mp.ui._chat_recent.get_parsed_text()
+		state["recent_visible"] = mp.ui._chat_recent.visible
 		print("NN_STATE ", JSON.stringify(state))
 		var f := FileAccess.open("user://nn_state.json", FileAccess.WRITE)
 		f.store_string(JSON.stringify(state))

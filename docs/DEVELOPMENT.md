@@ -24,3 +24,10 @@ Run the core suite before UI tests to provide an isolated valid-save fixture. UI
 `run_chaos.py` also needs Co-op Anything's `tools/chaos/chaos.py` under ignored `tools/coop-anything/`; obtain that toolkit separately. It uses the bad_wifi profile and seed 4242. The toolkit is not a player dependency.
 
 Test commands deliberately mutate worlds. Use the isolated copy and generated profiles, never a personal playthrough. TEST-RESULTS.md documents actual checks and remaining gaps; local tests do not establish separate-PC Steam connectivity.
+
+
+## First-person motion regression
+
+`python tests/run_motion_probe.py` renders native walking, sprinting, a fixed-skeleton walking segment, and stopping while looking down. The fixed-pose segment is deliberate test instrumentation; production does not freeze animation. The native camera keeps updating throughout. It checks alignment to the native camera's interpolation offset, rather than requiring the body to remain at the raw physics origin.
+
+For pixel-level verification, install the optional analysis dependencies from `tests/requirements-motion.txt` and run `python tests/check_motion_frames.py`. This checks the red host torso silhouette in the fixed-pose frames. It caught a pre-draw transform change reaching the renderer too late even when scene-graph coordinates looked correct. Screenshots and logs remain in ignored `local/motion/current/`.

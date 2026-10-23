@@ -108,18 +108,20 @@ func setup(pname: String, color: Color) -> void:
 	_color = color
 
 
-# our own body, follows the player every frame. no label and no tool,
+# Our own body shares the player parent with the camera. No label or tool;
 # the game draws its own hand
 func setup_local(player: Node3D, mp: Node) -> void:
 	_player = player
 	_mp = mp
+	process_priority = 1000
 	visible = false
-	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_INHERIT
 
 
 func _ready() -> void:
-	# Rendering already samples the pose buffer; avoid a second physics interpolation.
-	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	# Remote poses already interpolate. The local body inherits the same player
+	# transform/interpolation as the camera instead of copying a stale world pose.
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_INHERIT if _mp != null else Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_body = Node3D.new()
 	add_child(_body)
 	if _mp != null:
@@ -560,16 +562,28 @@ func _process(delta: float) -> void:
 	_label.text = _name if tool_txt == "" or _tool == 0 or _pushing() else "%s\n[%s]" % [_name, tr(tool_txt)]
 
 
+# The native player smooths movement by moving Camera locally even with engine
+# physics interpolation disabled. Apply its view offset in a late idle callback,
+# before SceneTree flushes transforms to the renderer (pre_draw is too late).
+func _sync_local_view() -> void:
+	if not is_instance_valid(_player) or not is_instance_valid(_player.camera):
+		return
+	var camera: Camera3D = _player.camera
+	var mount := camera.get_parent() as Node3D
+	if mount == null:
+		return
+	position = _player.global_basis.inverse() * (mount.global_basis * camera.position)
+
+
 func _follow_player(delta: float) -> void:
 	visible = _skel != null and is_instance_valid(_player) and _mp.active()
 	if not visible:
 		return
+	_sync_local_view()
 	var col: Color = _mp.player_color(multiplayer.get_unique_id())
 	if col != _color:
 		_color = col
 		_dye()
-	global_position = _player.get_global_transform_interpolated().origin
-	rotation = Vector3(0.0, _player.get_global_transform_interpolated().basis.get_euler().y, 0.0)
 	var p: Variant = _player.get("_pitch")
 	_pitch = float(p) if p != null else 0.0
 	_crouch = float(_player.call("crouch_amount")) if _player.has_method("crouch_amount") else 0.0

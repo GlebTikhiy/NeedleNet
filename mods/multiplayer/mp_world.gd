@@ -163,7 +163,7 @@ func _ready() -> void:
 	_avatar_script = load(mp.base_dir + "/mp_avatar.gd")
 	_me = _avatar_script.new()
 	_me.setup_local(player, mp)
-	world.add_child(_me)
+	player.add_child(_me)
 	props_sync = (load(mp.base_dir + "/mp_props.gd") as Script).new()
 	props_sync.name = "MPProps"
 	add_child(props_sync)

@@ -1,17 +1,11 @@
-# NeedleNet 0.1.0-preview.1 — Windows preview
+# NeedleNet 0.1.0-preview.2
 
-Find The Needle Demo with up to four players in a shared world.
+- Chat now opens in the upper-left corner with a translucent background and compact controls. Recent messages appear there without opening the input, then disappear after 10 seconds. Full history stays available with Y.
+- Fix first-person body jitter when looking down while walking or running. The body now belongs to the player transform alongside the camera, and applies the native camera interpolation offset before the renderer receives transforms.
+- Preserve the existing leg animation and remote-player network interpolation.
 
-- Session access in native main and pause menus.
-- Explicit New game / Load game actions for the host.
-- Visible chat controls with colored authors and a 100-message history.
-- Remote avatar pose buffering and matched local position/yaw interpolation.
-- Disconnect/reconnect fixes and cargo ownership recovery.
+A rendered native-controller regression reproduced up to 0.07 m of local-body lag while walking and 0.117 m while running before the fix. The final test verifies zero view-alignment error; the fixed-pose rendered silhouette varies by only 1 pixel with native camera smoothing active. Chat layout and transparency are checked at 720p.
 
-Requires Windows Steam Demo build 25963876. Every participant needs the same mod version. The base mod includes additional machines, upgrades and balance changes.
+All players should install this version together. Requires Windows Steam Demo build 25963876. Extract `NeedleNet-0.1.0-preview.2-Windows.zip`, close the game and run `Install.cmd`. The installer backs up the previous mod and configuration.
 
-Download `NeedleNet-0.1.0-preview.1-Windows.zip`, extract it, close the game and double-click `Install.cmd`. Launch through Steam afterward. The installer backs up the previous mod and configuration.
-
-Four local game clients passed core synchronization, save/load, chat and bad-network scenarios. Separate-PC Steam invitations, long sessions, host crash recovery and visual confirmation of continuous motion remain unverified. This is a preview release.
-
-Credits: original mod by AleDev11; maintenance base by Sucukdeluxe / xRangerDE; Quaternius CC0 farmer model. See LICENSE and NOTICE.md.
+This remains a preview. Separate-PC Steam invitations, long sessions and host-crash recovery need further testing. Core mod credits and licenses are preserved in LICENSE and NOTICE.md.

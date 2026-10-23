@@ -1,5 +1,12 @@
 # NeedleNet changes
 
+## 0.1.0-preview.2
+
+- Move chat to the upper-left corner with a translucent background, compact controls and passive recent messages; chat no longer uses center-screen notification cards.
+- Parent the local first-person body directly to the player so it shares the camera's movement and interpolation. Apply the native camera interpolation offset in late idle processing, before renderer transform submission; a pre-draw update is too late. Remote avatars keep their separate network interpolation.
+- Add rendered native-controller walking/running/stopping regression coverage and 720p chat layout checks.
+
+
 ## 0.1.0-preview.1
 
 - Adopt independent Semantic Versioning for NeedleNet. This preview replaces the former `0.19.6-NeedleNet.5` label; gameplay is unchanged.

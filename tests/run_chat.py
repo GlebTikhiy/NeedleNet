@@ -9,7 +9,7 @@ try:
         message = role + ' Привет! [b]буквальный текст[/b] ' + 'я' * 240
         command(role, 'chat', text=message)
         expected = message[:200]
-        wait_for(lambda ss: all(any(m['text'] == expected and m['who'] == role for m in s.get('chat', [])) for s in ss), 30)
+        wait_for(lambda ss: all(any(m['text'] == expected and m['who'] == role for m in s.get('chat', [])) for s in ss) and all(expected in s.get('recent_chat', '') and s.get('recent_visible') for s in ss), 30)
         print('CHAT_PASS', role, flush=True)
     (ROOT / 'local/chat-result.json').write_text(json.dumps({'passed': roles, 'states': states()}, ensure_ascii=False, indent=2), encoding='utf-8')
 finally:

@@ -58,6 +58,9 @@ var _lobby_players_title: Label
 var _lobby_load: Button
 var _lobby_chat: Button
 var _chat_button: Button
+var _chat_recent: RichTextLabel
+var _chat_recent_until := 0.0
+var _chat_world_layout := false
 var _chat_history: RichTextLabel
 var _chat_lines: Array[Dictionary] = []
 var _lobby_play: Button
@@ -685,29 +688,21 @@ func _build_roster() -> void:
 	add_child(_roster)
 
 
-# Looks like the lobby's rename field: dark, square, a gold hairline, with the
-# game's own Enter key art in front. Sits just above the hotbar.
+# Corner chat: translucent history/input, with passive recent lines while playing.
 func _build_chat() -> void:
 	_chat_box = PanelContainer.new()
 	_chat_box.z_index = 20
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(COL_FIELD, 1.0)
+	sb.bg_color = Color(COL_FIELD, 0.58)
 	sb.set_border_width_all(1)
-	sb.border_color = COL_TITLE
+	sb.border_color = Color(COL_TITLE, 0.3)
 	sb.content_margin_left = 14
 	sb.content_margin_right = 18
 	sb.content_margin_top = 6
 	sb.content_margin_bottom = 7
 	_chat_box.add_theme_stylebox_override("panel", sb)
-	_chat_box.anchor_left = 0.5
-	_chat_box.anchor_right = 0.5
-	_chat_box.anchor_top = 1.0
-	_chat_box.anchor_bottom = 1.0
-	_chat_box.offset_left = -300
-	_chat_box.offset_right = 300
-	_chat_box.offset_top = -440
-	_chat_box.offset_bottom = -162
-	_chat_box.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_chat_box.position = Vector2(18, 92)
+	_chat_box.size = Vector2(460, 240)
 	_chat_box.visible = false
 	add_child(_chat_box)
 
@@ -716,15 +711,36 @@ func _build_chat() -> void:
 	var stack := VBoxContainer.new()
 	_chat_box.add_child(stack)
 	_chat_history = RichTextLabel.new()
-	_chat_history.custom_minimum_size = Vector2(0, 200)
+	_chat_history.custom_minimum_size = Vector2(0, 150)
 	_chat_history.bbcode_enabled = false
 	_chat_history.scroll_following = true
 	_chat_history.add_theme_font_size_override("normal_font_size", 18)
+	var heading := HBoxContainer.new()
+	var title := _styled("Чат · Esc" if TranslationServer.get_locale().begins_with("ru") else "Chat · Esc", 16, COL_DIM)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_child(title)
+	var close := Button.new()
+	close.text = "×"
+	close.custom_minimum_size = Vector2(28, 28)
+	close.pressed.connect(_close_chat)
+	heading.add_child(close)
+	stack.add_child(heading)
 	stack.add_child(_chat_history)
 	stack.add_child(row)
-	stack.add_child(_button("Закрыть · Esc" if TranslationServer.get_locale().begins_with("ru") else "Close · Esc", _close_chat))
+	_chat_recent = RichTextLabel.new()
+	_chat_recent.position = Vector2(24, 110)
+	_chat_recent.size = Vector2(480, 150)
+	_chat_recent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chat_recent.bbcode_enabled = false
+	_chat_recent.scroll_active = false
+	_chat_recent.scroll_following = true
+	_chat_recent.add_theme_font_size_override("normal_font_size", 17)
+	_chat_recent.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	_chat_recent.add_theme_constant_override("shadow_offset_x", 1)
+	_chat_recent.add_theme_constant_override("shadow_offset_y", 1)
+	add_child(_chat_recent)
 	_chat_button = _button("Чат · Y" if TranslationServer.get_locale().begins_with("ru") else "Chat · Y", _open_chat)
-	_chat_button.position = Vector2(18, 130)
+	_chat_button.position = Vector2(18, 48)
 	add_child(_chat_button)
 	row.add_child(_key_cap("enter", "ENTER"))
 
@@ -739,12 +755,16 @@ func _build_chat() -> void:
 	var cls := _ui_font()
 	if cls != null:
 		_chat_edit.add_theme_font_override("font", cls.call("regular"))
+		_chat_history.add_theme_font_override("normal_font", cls.call("regular"))
+		_chat_recent.add_theme_font_override("normal_font", cls.call("regular"))
 	_chat_edit.add_theme_font_size_override("font_size", 20)
 	_chat_edit.add_theme_color_override("font_color", COL_TEXT)
 	_chat_edit.add_theme_color_override("font_placeholder_color", Color(COL_DIM, 0.7))
 	_chat_edit.add_theme_color_override("caret_color", COL_TITLE)
 	_chat_edit.text_submitted.connect(_on_chat_submit)
 	row.add_child(_chat_edit)
+	get_viewport().size_changed.connect(_layout_chat)
+	_layout_chat()
 
 
 # A key the way the game's hints draw it: its own keycap art when there is
@@ -1078,6 +1098,19 @@ func close_panel() -> void:
 	_update_wait()  # the card stands in for the panel once it is closed
 
 
+func _layout_chat() -> void:
+	var viewport := get_viewport().get_visible_rect().size
+	var width := clampf(viewport.x * 0.34, 280.0, 460.0)
+	_chat_world_layout = mp.in_world()
+	# Leave the native tutorial/mission card at the top left unobstructed.
+	var top := 168.0 if _chat_world_layout else 48.0
+	_chat_button.position = Vector2(18, top)
+	_chat_box.position = Vector2(18, top + 44.0)
+	_chat_recent.position = Vector2(24, top + 62.0)
+	_chat_box.size.x = width
+	_chat_recent.size.x = width - 12.0
+
+
 func chat_is_open() -> bool:
 	return _chat_box != null and _chat_box.visible
 
@@ -1163,8 +1196,13 @@ func chat_line(who: String, col: Color, text: String) -> void:
 		_chat_history.add_text(str(line.who) + ": ")
 		_chat_history.pop()
 		_chat_history.add_text(str(line.text) + "\n")
-	_forget_note()
-	_push_feed(_feed_card(col, mp.t("chat_name") % who, text))
+	_chat_recent.clear()
+	for line in _chat_lines.slice(maxi(0, _chat_lines.size() - 5)):
+		_chat_recent.push_color(line.color)
+		_chat_recent.add_text(str(line.who) + ": ")
+		_chat_recent.pop()
+		_chat_recent.add_text(str(line.text) + "\n")
+	_chat_recent_until = Time.get_ticks_msec() / 1000.0 + 10.0
 
 
 # One notification: the game's HUD card, the player's colour down the edge, the
@@ -1252,6 +1290,9 @@ func _forget_note() -> void:
 # session state instead: it is a handful of reads and it also catches the host
 # dropping back to the menu.
 func _process(delta: float) -> void:
+	if _chat_world_layout != mp.in_world():
+		_layout_chat()
+	_chat_recent.visible = mp.active() and not _root.visible and not _chat_box.visible and Time.get_ticks_msec() / 1000.0 < _chat_recent_until
 	_chat_button.visible = mp.active() and not _root.visible and not _chat_box.visible
 	_try_restore_mouse()
 	if _panel != null and _lobby_locale != mp.i18n.language_code(TranslationServer.get_locale()):

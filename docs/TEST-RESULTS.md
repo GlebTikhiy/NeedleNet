@@ -111,3 +111,15 @@ Limits: no visual recording of continuous walking/running under packet loss, no 
 ## Public player package — 2026-10-23
 
 `python tests/check_public_release.py`: PASS. 166 entries, including 155 runtime files identical to .5, valid per-file hashes, matching archive contents and manifest, reproducible ZIP, no forbidden development/personal/game-binary files, valid relative Markdown links, wrong game build rejected before writes. Steam-library discovery and backup/config preservation were also checked in an isolated installer fixture. Gameplay code unchanged.
+
+
+## 0.1.0-preview.2 — chat placement and local body jitter
+
+- Reproduced local look-down jitter through the native player controller, with movement at 4.2 m/s and sprinting at 7 m/s at a 144 FPS cap. The initial copied pose lagged up to 0.07 m walking and 0.117 m running.
+- Parenting the local avatar to the player removed that root lag but did not fix the visible jitter. A four-part isolation test (normal, frozen skeleton, frozen camera offset, both frozen) identified the native Camera local interpolation offset as the remaining cause. Global engine physics interpolation was disabled in this game build.
+- A pre-draw view-offset correction made coordinate checks pass but left the rendered torso alternating by 25–26 pixels. The correction now runs in late idle processing, before SceneTree submits transforms to the renderer.
+- Final native walk/run/stop probe: PASS with zero view-alignment error. Fixed-pose walking with native camera active: rendered torso silhouette range 1 pixel across 17 captures (limit 3). The diagnostic skeleton hold exists only in the test driver.
+- Four-client chat test: PASS for all senders, including passive corner message text and visibility. Core eleven-check session suite: PASS during this iteration; the final additional changes only affect local rendering/chat layout.
+- Rendered UI suite: upper-left placement, translucent background, 720p fit, input lock and player-parent body hierarchy passed. The corner layout leaves space for the native tutorial card in the game view.
+
+Separate-PC Steam invitations, long sessions and host-crash recovery remain outside this verification. Pixel tests cover a fixed look-down pose/host color on the supported build, not every possible camera or lighting configuration.

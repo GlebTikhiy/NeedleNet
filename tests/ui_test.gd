@@ -102,7 +102,19 @@ func run() -> void:
 	mp.ui._on_chat_submit("Привет, команда! [b]текст[/b]")
 	check(mp.ui._chat_lines.size() == 1, "chat retains Cyrillic and literal markup")
 	mp.ui._open_chat()
+	check(mp.ui._chat_box.get_global_rect().position.x < 40 and mp.ui._chat_box.get_global_rect().position.y < 120, "chat is in upper-left corner")
+	var chat_style: StyleBoxFlat = mp.ui._chat_box.get_theme_stylebox("panel")
+	check(chat_style.bg_color.a > 0.3 and chat_style.bg_color.a < 0.7, "chat background translucent")
 	await shot("chat-lobby")
+	var chat_size := root.size
+	var chat_scale := root.content_scale_size
+	root.size = Vector2i(1280, 720)
+	root.content_scale_size = Vector2i(1280, 720)
+	await create_timer(0.3).timeout
+	check(Rect2(Vector2.ZERO, root.get_visible_rect().size).encloses(mp.ui._chat_box.get_global_rect()), "corner chat fits 720p")
+	await shot("chat-720p")
+	root.size = chat_size
+	root.content_scale_size = chat_scale
 	mp.ui._close_chat()
 	mp.ui._lobby_play.pressed.emit()
 	await create_timer(0.8).timeout
@@ -123,6 +135,7 @@ func run() -> void:
 		mp.ui._open_chat()
 		await process_frame
 		check(mp.world_sync.player.menu_is_up(), "typing blocks player controls")
+		check(mp.world_sync._me.get_parent() == mp.world_sync.player, "local body shares player transform with camera")
 		mp.ui._close_chat()
 		var pause: Node = mp.ui._pause_menu.get_ref() if mp.ui._pause_menu != null else null
 		check(is_instance_valid(pause), "pause menu registered")
