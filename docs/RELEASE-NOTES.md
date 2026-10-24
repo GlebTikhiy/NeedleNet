@@ -1,11 +1,9 @@
-# NeedleNet 0.1.0-preview.4
+# NeedleNet 0.1.0-preview.5
 
-Fixed guest-only duplicate conveyor cargo when a predicted seam transfer met a partial update of the source belt. The host quantity remained authoritative; the older predicted copy is now removed before restoring the incoming record.
+Fixed another guest-only conveyor duplication case: an older full snapshot and a newer partial update could queue the same cargo on two different paths. Newer record locations now supersede older queued copies, and merged snapshots are validated before touching live cargo.
 
-Automated hardening used four real game processes and native physics: 256 conveyor segments in closed loops, 4,096 physical hay wads, a rendered D3D12 host, bad Wi-Fi, five- and 45-second outages, actual host termination and checkpoint restoration. The large factory preserved 204,800 strands on the host. Shared money/technology and personal tool ownership also passed. Detailed measurements, regression evidence and limits are in the [release QA report](https://github.com/GlebTikhiy/NeedleNet/blob/v0.1.0-preview.4/docs/RELEASE-QA.md).
+A 90.53-minute four-client native factory soak passed: 256 conveyor segments, 4,096 spawned objects, exactly 204,800 strands in all 493 sampled host states, no sampled duplicate identities, seven save/load cycles, sixteen guest activity/rejoin cycles, host-crash checkpoint restoration and normal process exits. Six separately supplied machine types also confirmed output before the main soak. [Detailed results and limitations](https://github.com/GlebTikhiy/NeedleNet/blob/v0.1.0-preview.5/docs/LONG-TEST-RESULTS.md).
 
-When the host disappears, guests return to the menu after the connection timeout. There is no host migration. Restart the host, load its save and rejoin; unsaved progress rolls back to the checkpoint.
+This remains a preview. Linked production chains with normal purchases/unlocks and separate-PC Steam fault injection are still unverified. Individual machine probes do not certify complete progression. Native tutorial hints remain shared; host migration is not implemented.
 
-This remains a preview. Long playthroughs, every production chain and separate-PC Steam fault injection are not covered by these local tests. Native tool tutorial hints remain shared.
-
-Every participant must update together. Requires Windows Steam Demo build 25963876. Extract `NeedleNet-0.1.0-preview.4-Windows.zip`, close the game and run `Install.cmd`. Existing mod/configuration files are backed up. Credits and license notices are preserved.
+Every player must update together. Requires Windows Steam Demo build 25963876. Extract `NeedleNet-0.1.0-preview.5-Windows.zip`, close the game and run `Install.cmd`. Previous mod/configuration files are backed up. Game files, private saves, raw logs and test drivers are not included in the player ZIP.

@@ -13,12 +13,15 @@ var frame_samples: Array[float] = []
 var factory_job := "idle"
 var previous_frame_usec := 0
 var last_command_id := 0
+var production_nodes: Array[Node] = []
+var production_events := {}
 var connect_port := int(OS.get_environment("NEEDLENET_CONNECT_PORT")) if OS.get_environment("NEEDLENET_CONNECT_PORT") != "" else 27841
 
 func _initialize() -> void:
 	call_deferred("start")
 
 func start() -> void:
+	AudioServer.set_bus_mute(0, true)
 	Engine.max_fps = 60
 	mp = root.get_node("MPMod")
 	mp.my_name = role
@@ -48,8 +51,16 @@ func _process(delta: float) -> bool:
 				last_command_id = int(command.get("id", 0))
 				if command.get("action") == "quit_test":
 					quit(0)
+				elif command.get("action") == "production_setup" and mp.in_world():
+					production_setup()
+				elif command.get("action") == "production_feed" and mp.in_world():
+					production_feed(command)
+				elif command.get("action") == "production_supply" and mp.in_world():
+					production_supply()
 				elif command.get("action") == "partial_belt_probe" and mp.in_world():
 					partial_belt_probe()
+				elif command.get("action") == "queued_belt_probe" and mp.in_world():
+					partial_belt_probe(true)
 				elif command.get("action") == "stress_view" and mp.in_world():
 					if "intro" in mp.world_sync.world and is_instance_valid(mp.world_sync.world.intro):
 						mp.world_sync.world.intro._finish()
@@ -198,6 +209,7 @@ func _process(delta: float) -> bool:
 		state["drawn_frames"] = Engine.get_frames_drawn()
 		state["fps"] = Engine.get_frames_per_second()
 		state["draw_calls"] = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+		state["audio_muted"] = AudioServer.is_bus_mute(0)
 		frame_samples.clear()
 		if mp.in_world():
 			state["tech"] = root.get_node("Tech").ranks.duplicate()
@@ -236,28 +248,51 @@ func _process(delta: float) -> bool:
 				catalog[kind] = load("res://scripts/items/item_db.gd").has_item(kind)
 			state["item_catalog"] = catalog
 			state["conveyors"] = mp.world_sync.builds.conveyors.size()
+			var machine_rows := {}
+			var machine_runtime := {}
+			for group in ["compressors", "pulpers", "papers", "briquette_presses", "wrappers", "pelletizers"]:
+				if group in mp.world_sync.builds:
+					var rows := []
+					for machine in mp.world_sync.builds.get(group):
+						if is_instance_valid(machine):
+							rows.append(machine.to_dict())
+						var runtime := {}
+						for key in ["power", "power_blocked", "water", "water_blocked", "switched_off", "stored", "stored_strands", "_batch", "_press", "_wrap"]:
+							if key in machine:
+								runtime[key] = machine.get(key)
+						machine_runtime[str(machine.get_instance_id())] = {"group": group, "values": runtime}
+					machine_rows[group] = rows
+			state["machines"] = machine_rows
+			state["machine_runtime"] = machine_runtime
+			state["production_events"] = production_events.duplicate()
 			var records := []
 			for path in mp.world_sync.world.find_children("*", "Node", true, false):
 				if path.has_method("save_ends") and "records_props" in path and bool(path.records_props):
+					var path_label := str(path.get_path())
 					for index in range(path.run.first(), path.run.first() + path.run.count()):
 						var record: Dictionary = path.run.record(index)
-						records.append({"seq": record.seq, "strands": record.strands, "s": record.s})
+						records.append({"seq": record.seq, "strands": record.strands, "s": record.s, "path": path_label})
 			state["belt_records"] = records
 			state["cargo_strands"] = 0.0
 			state["cargo_count"] = records.size() + props_state.size()
 			var sequences := {}
 			state["duplicate_belt_ids"] = 0
+			state["duplicate_examples"] = []
 			state["belt_position_sum"] = 0.0
 			for record in records:
 				state["cargo_strands"] += float(record.strands)
 				state["belt_position_sum"] += float(record.s)
 				if sequences.has(record.seq):
 					state["duplicate_belt_ids"] += 1
-				sequences[record.seq] = true
+					if state["duplicate_examples"].size() < 8:
+						state["duplicate_examples"].append({"seq": record.seq, "paths": [sequences[record.seq].path, record.path]})
+				sequences[record.seq] = record
 			state["belt_strands"] = state["cargo_strands"]
 			for item_state in props_state.values():
 				state["cargo_strands"] += float(item_state.strands)
 			state["belt_cargo_count"] = records.size()
+			if "merged_record_moves" in mp.world_sync.belts_sync:
+				state["merged_record_moves"] = mp.world_sync.belts_sync.merged_record_moves
 			if OS.get_environment("NEEDLENET_COMPACT") == "1":
 				state.erase("props")
 				state.erase("belt_records")
@@ -292,11 +327,128 @@ func stress_point(index: int, end: bool, loops: bool) -> Vector3:
 	var row := index / 16
 	return Vector3(-55 + col * 2.5, 1, -50 + row * 4 + (3 if end else 0))
 
+func production_setup() -> void:
+	var methods := ["add_compressor", "add_pulper", "add_paper", "add_briquette", "add_wrapper", "add_pelletizer"]
+	var dump := {}
+	for index in methods.size():
+		var machine: Node = mp.world_sync.builds.call(methods[index], Vector3(-45 + (index % 3) * 12, 0, 22 + (index / 3) * 15), 0.0)
+		production_nodes.append(machine)
+		var entry := {"methods": [], "properties": {}, "constants": {}, "state": machine.to_dict(), "signals": machine.get_signal_list()}
+		for signal_info in machine.get_signal_list():
+			if signal_info.args.size() == 1 and signal_info.name in ["baled", "baled_record", "wrapped", "wrapped_record", "pressed", "pressed_record", "rolled", "rolled_record", "slabbed", "slabbed_record", "bricked"]:
+				machine.connect(signal_info.name, _production_event.bind(methods[index], str(signal_info.name)))
+		var script: Script = machine.get_script()
+		while script != null:
+			entry.methods.append_array(script.get_script_method_list())
+			for key in script.get_script_constant_map():
+				var value: Variant = script.get_script_constant_map()[key]
+				if value is int or value is float:
+					entry.constants[key] = value
+			script = script.get_base_script()
+		for property in machine.get_property_list():
+			if int(property.usage) & PROPERTY_USAGE_SCRIPT_VARIABLE:
+				var value: Variant = machine.get(property.name)
+				if value is int or value is float or value is Vector3 or value is bool:
+					entry.properties[property.name] = value
+		dump[methods[index]] = entry
+	for entry in ProjectSettings.get_global_class_list():
+		if entry.class == "BeltRun":
+			dump["item_ids"] = load(entry.path).get_script_constant_map().get("ITEM_IDS", [])
+	var file := FileAccess.open("user://production-api.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(dump))
+	file.close()
+
+func _production_event(_value: Variant, machine: String, event: String) -> void:
+	var key := machine + ":" + event
+	production_events[key] = int(production_events.get(key, 0)) + 1
+
+func production_feed(command: Dictionary) -> void:
+	var index := int(command.get("machine", 0))
+	if index < 0 or index >= production_nodes.size():
+		return
+	var machine: Node = production_nodes[index]
+	var at: Vector3 = machine.global_position + Vector3(0, 1.5, 0)
+	var method := str(command.get("port", ""))
+	if method != "" and machine.has_method(method):
+		var point: Variant = machine.call(method)
+		if point is Vector3:
+			at = point + Vector3(0, 0.4, 0)
+	var kind := str(command.get("kind", "hay_wad"))
+	var count := int(command.get("count", 4))
+	var amount := int(command.get("strands", 1000))
+	if index == 3 and bool(command.get("native_batch", false)):
+		var tech: Node = root.get_node("Tech")
+		if kind == "eco_brick":
+			count = maxi(2, 2 * int(tech.briquette_batch_bricks()))
+			amount = int(tech.pellet_brick_strands())
+		else:
+			amount = maxi(120, int(tech.briquette_batch_strands()))
+	for n in count:
+		var state := {"strands": amount}
+		if kind == "eco_brick":
+			state["worth"] = 10.0
+		mp.world_sync.props_sync.props.spawn(kind, Transform3D(Basis.IDENTITY, at + Vector3(0, n * 0.05, 0)), state)
+
+func production_supply() -> void:
+	var builds: Node = mp.world_sync.builds
+	var poles: Array[Node] = []
+	for row in 6:
+		for col in 5:
+			poles.append(builds.add_power_pole(Vector3(-45 + col * 6, 0, 8 + row * 6), 0.0))
+	await process_frame
+	for row in 6:
+		for col in 5:
+			var index := row * 5 + col
+			var neighbors := []
+			if col < 4:
+				neighbors.append(index + 1)
+			if row < 5:
+				neighbors.append(index + 5)
+			for next in neighbors:
+				var joined: int = builds.join_poles(poles[index], poles[next])
+				if joined < 0:
+					print("NN_SUPPLY_WIRE_BLOCKED ", builds.wire_answer(poles[index], poles[next]))
+	var machines: Array[Node] = []
+	for col in 3:
+		var generator: Node = builds.add_generator(Vector3(-45 + col * 12, 0, 12), 0.0)
+		machines.append(generator)
+		var at: Vector3 = generator.global_position + Vector3(0, 1, 0)
+		for method in ["feed_point", "port_in", "_mouth"]:
+			if generator.has_method(method):
+				var point: Variant = generator.call(method)
+				if point is Vector3:
+					at = point + Vector3(0, 0.4, 0)
+					break
+		for n in 4:
+			mp.world_sync.props_sync.props.spawn("eco_brick", Transform3D(Basis.IDENTITY, at + Vector3(0, n * 0.1, 0)), {"strands": 5000, "worth": 1000.0})
+	var pump: Node = builds.add_borehole(Vector3(-33, 0, 10), 0.0)
+	machines.append(pump)
+	var pulper: Node = production_nodes[1]
+	if pump.has_method("water_port") and pulper.has_method("water_port"):
+		var start: Variant = pump.call("water_port")
+		var end: Variant = pulper.call("water_port")
+		if start is Vector3 and end is Vector3:
+			builds.add_water_main(start, end, 9000)
+	var dump := {}
+	for machine in machines:
+		var data := {"state": machine.to_dict(), "methods": [], "ports": {}}
+		var script: Script = machine.get_script()
+		while script != null:
+			data.methods.append_array(script.get_script_method_list())
+			script = script.get_base_script()
+		for method in ["port_in", "feed_point", "_mouth", "power_ports", "water_ports", "water_port"]:
+			if machine.has_method(method):
+				data.ports[method] = machine.call(method)
+		dump[str(machine.name)] = data
+	var file := FileAccess.open("user://production-supply.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify(dump))
+	file.close()
+
 func capture_factory() -> void:
 	await RenderingServer.frame_post_draw
 	print("NN_FACTORY_SCREENSHOT ", root.get_texture().get_image().save_png("user://stress-factory.png"))
 
-func partial_belt_probe() -> void:
+func partial_belt_probe(queued: bool = false) -> void:
 	var paths := []
 	var source: Node = null
 	for path in mp.world_sync.world.find_children("*", "Node", true, false):
@@ -324,14 +476,28 @@ func partial_belt_probe() -> void:
 	var prediction: Dictionary = rows[0].duplicate(true)
 	prediction["s"] = 0.0
 	routes.restore(target, [prediction])
-	var accepted: bool = mp.world_sync.belts_sync._apply_belts([entry], false)
+	var accepted := false
+	var invalid_rejected := false
+	if queued:
+		var target_ends: PackedVector3Array = target.save_ends()
+		var next_entry := {"a": target_ends[0], "b": target_ends[1], "line": target._line, "owner": routes.owner_key(mp.world_sync, target), "records": [prediction]}
+		var service: Node = mp.world_sync.belts_sync
+		invalid_rejected = not service._apply_belts([entry, next_entry], true)
+		service._pending_snapshot = null
+		service._queue_belts([entry], [], true)
+		service._queue_belts([next_entry], [], false)
+		var payload: Dictionary = service._pending_snapshot
+		accepted = service._apply_belts(payload.paths, payload.full)
+		service._pending_snapshot = null
+	else:
+		accepted = mp.world_sync.belts_sync._apply_belts([entry], false)
 	var copies := 0
 	for path in paths:
 		for index in range(path.run.first(), path.run.first() + path.run.count()):
 			if path.run.seq_of(index) == seq:
 				copies += 1
-	var file := FileAccess.open("user://partial-belt-probe.json", FileAccess.WRITE)
-	file.store_string(JSON.stringify({"accepted": accepted, "copies": copies, "seq": seq}))
+	var file := FileAccess.open("user://queued-belt-probe.json" if queued else "user://partial-belt-probe.json", FileAccess.WRITE)
+	file.store_string(JSON.stringify({"accepted": accepted, "copies": copies, "seq": seq, "invalid_rejected": invalid_rejected}))
 	file.close()
 
 func stress_factory(belts: int, cargo: int, loops: bool = false) -> void:

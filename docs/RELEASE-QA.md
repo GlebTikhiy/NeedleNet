@@ -1,5 +1,7 @@
 # Release hardening — 2026-10-23
 
+Historical preview.4 checks are recorded below. A later soak exposed another queued-snapshot duplicate; see the [preview.5 fix and ninety-minute follow-up](LONG-TEST-RESULTS.md).
+
 Target: Windows Steam demo build 25963876, App 5165210, native banner V66.
 Executable SHA-256: `0304f7cdd9d2a30510f43a45e6d7ce96f201e69ced4a7334d08a7bfd01073742`.
 Engine: Godot 4.7.2 custom build `3ea155ec3`.

@@ -38,3 +38,5 @@ For pixel-level verification, install the optional analysis dependencies from `t
 ## Factory stress and failure recovery
 
 See [release QA](RELEASE-QA.md) for the larger native factory, host process termination, long network outage and mutation-pair regression. `run_release_candidate.py` needs the optional `tests/requirements-qa.txt` dependency and the Co-op Anything UDP relay. `run_shutdown.py` verifies graceful process exits separately from forced test cleanup.
+
+The Windows unattended soak launcher and result statuses are described in [LONG-TEST.md](../LONG-TEST.md). The [ninety-minute results](LONG-TEST-RESULTS.md) distinguish powered individual-machine probes from linked-chain progression. Test audio uses Dummy plus master mute.

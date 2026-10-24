@@ -24,9 +24,12 @@ def launch(role):
         startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         startup.wShowWindow = subprocess.SW_HIDE
     display = ['--windowed', '--resolution', '1280x720'] if rendered else ['--headless']
-    p = subprocess.Popen([str(GAME / 'FindTheNeedle.exe'), *display, '--path', str(GAME), '--script', str(ROOT / 'tests/session_test.gd'), '--log-file', str(ROOT / f'local/{role}.log')], env=env, cwd=GAME, creationflags=subprocess.CREATE_NO_WINDOW, startupinfo=startup)
+    log_dir = Path(os.environ.get('NEEDLENET_LOG_DIR', str(ROOT / 'local')))
+    log_dir.mkdir(parents=True, exist_ok=True)
+    p = subprocess.Popen([str(GAME / 'FindTheNeedle.exe'), *display, '--audio-driver', 'Dummy', '--path', str(GAME), '--script', str(ROOT / 'tests/session_test.gd'), '--log-file', str(log_dir / f'{role}.log')], env=env, cwd=GAME, creationflags=subprocess.CREATE_NO_WINDOW, startupinfo=startup)
     processes.append(p)
     print(f'{role} pid={p.pid}', flush=True)
+    return p
 
 def states():
     result = []

@@ -32,6 +32,7 @@ var _pick_stack := false
 var _cleanup_scripts := {}
 var _mirror_holds := {}
 var _pending_snapshot: Variant = null
+var merged_record_moves := 0
 var _stopped := false
 var _retry_at := 0
 var _send_slot := FrameSlots.new()
@@ -244,8 +245,26 @@ func on_belts(packed: PackedByteArray, raw_size: int) -> void:
 
 func _queue_belts(entries: Array, lifts: Array, full_snapshot: bool) -> void:
 	if _pending_snapshot != null and not full_snapshot:
+		# New records supersede their older location, even if that old path
+		# is absent from this delta (for example outside the interest radius).
+		var incoming := {}
+		for entry in entries:
+			var key := [entry.owner, entry.line]
+			for row in entry.records:
+				incoming[row.seq] = key
 		var combined := {}
-		for entry in _pending_snapshot.paths + entries:
+		for entry in _pending_snapshot.paths:
+			var older: Dictionary = entry.duplicate()
+			var rows := []
+			for row in entry.records:
+				if incoming.has(row.seq):
+					if incoming[row.seq] != [entry.owner, entry.line]:
+						merged_record_moves += 1
+				else:
+					rows.append(row)
+			older["records"] = rows
+			combined[[older.owner, older.line]] = older
+		for entry in entries:
 			combined[[entry.owner, entry.line]] = entry
 		entries = combined.values()
 		full_snapshot = bool(_pending_snapshot.full)
@@ -295,6 +314,10 @@ func _flush_pending_belts() -> void:
 
 
 func _apply_belts(entries: Array, full_snapshot: bool = true) -> bool:
+	# Queued payloads have been merged after the wire-level validation.
+	# Reject an invalid merge before clearing any live cargo.
+	if not Snapshot.valid(entries):
+		return false
 	var resolved: Dictionary = Routes.resolve(mp.world_sync, entries, BeltPath._live, _route_index.get_index(mp.world_sync, BeltPath._live))
 	if not resolved.ready:
 		if is_instance_valid(mp.world_sync.diagnostics):

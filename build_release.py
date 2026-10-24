@@ -6,7 +6,7 @@ import re
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
-NAME = 'NeedleNet-0.1.0-preview.4-Windows'
+NAME = 'NeedleNet-0.1.0-preview.5-Windows'
 PLAYER_FILES = (
     'Install.cmd', 'Install.ps1', 'LICENSE', 'NOTICE.md',
     'README.md', 'README-RU.md', 'CHANGELOG.md',
@@ -17,7 +17,7 @@ RUNTIME_SUFFIXES = {'.gd', '.gdextension', '.glb', '.png', '.svg'}
 
 def build():
     version = re.search(r'const VERSION\s*:?=\s*"([^"]+)"', (ROOT / 'mods/multiplayer/mp.gd').read_text(encoding='utf-8'))
-    if not version or version[1] != '0.1.0-preview.4':
+    if not version or version[1] != '0.1.0-preview.5':
         raise RuntimeError('Update release metadata for the current runtime version')
     files = [ROOT / name for name in PLAYER_FILES]
     for path in sorted((ROOT / 'mods/multiplayer').rglob('*')):

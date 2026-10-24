@@ -1,5 +1,12 @@
 # NeedleNet changes
 
+## 0.1.0-preview.5
+
+- Fix a second guest-only belt duplication case: a newer partial update can move a record between paths while an older full snapshot is still queued. Supersede its older location before merging and validate merged snapshots before clearing live cargo.
+- Pass a 90-minute four-client native factory soak with 256 conveyor segments, 4,096 spawned objects, seven save/load cycles, 16 guest activity/rejoin cycles and host-crash checkpoint recovery.
+- Observe output from six machine types supplied with native generators/fuel and a borehole/water main. These are isolated machine probes, not complete production-chain or unlock-progression coverage.
+- Include silent unattended test launchers in development sources; no test drivers are included in the player ZIP.
+
 ## 0.1.0-preview.4
 
 - Prevent guest-only duplicate belt cargo after a predicted seam transfer followed by a partial source-belt snapshot. Remove the older predicted copy before restoring authoritative records.

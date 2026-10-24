@@ -1,4 +1,8 @@
-# NeedleNet test results — 2026-10-23
+# NeedleNet test results — 2026-10-24
+
+## Version 0.1.0-preview.5
+
+[The ninety-minute follow-up](LONG-TEST-RESULTS.md) passed 493 sampled four-client states, seven save/load cycles, sixteen guest activity/rejoin cycles, host crash recovery and graceful shutdown. All six separately supplied machine types confirmed output. The queued full-plus-partial snapshot duplicate found after preview.4 is fixed; full progression and separate-PC Steam fault injection remain outside this evidence.
 
 ## Version 0.1.0-preview.4
 
