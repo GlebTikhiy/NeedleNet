@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 import time
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[2]
 game = root / 'lab/game'
 output = root / 'local/ui'
 output.mkdir(parents=True, exist_ok=True)
@@ -16,7 +16,7 @@ if fixtures:
 startup = subprocess.STARTUPINFO()
 startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 startup.wShowWindow = subprocess.SW_HIDE
-process = subprocess.Popen([str(game / 'FindTheNeedle.exe'), '--windowed', '--resolution', '1280x720', '--script', str(root / 'tests/ui_test.gd'), '--log-file', str(log)], cwd=game, env=env, startupinfo=startup)
+process = subprocess.Popen([str(game / 'FindTheNeedle.exe'), '--windowed', '--resolution', '1280x720', '--script', str(root / 'dev/tests/ui_test.gd'), '--log-file', str(log)], cwd=game, env=env, startupinfo=startup)
 try:
     code = process.wait(timeout=180)
     content = log.read_text(encoding='utf-8-sig')

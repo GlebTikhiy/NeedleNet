@@ -47,4 +47,4 @@ These probes ran before the conveyor soak and their fixtures were discarded by l
 
 Still unverified: linked end-to-end production chains with normal purchase/unlock progression, and separate-PC Steam transport fault handling. Successful Steam invitations/co-op were previously reported by a player; the automated relay remains local ENet.
 
-Run [the unattended test](../LONG-TEST.md) from a prepared isolated lab. The source checkout includes Windows launch/stop scripts and writes a copyable final report. No game files, personal saves, native API dumps or raw session logs are distributed. No test code is included in the player ZIP, and passing this runner never publishes a stable release automatically.
+Run [the unattended test](LONG-TEST.md) from a prepared isolated lab. The source checkout includes Windows launch/stop scripts and writes a copyable final report. No game files, personal saves, native API dumps or raw session logs are distributed. No test code is included in the player ZIP, and passing this runner never publishes a stable release automatically.

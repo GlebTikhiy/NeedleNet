@@ -5,21 +5,26 @@ import json
 import re
 import zipfile
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 NAME = 'NeedleNet-0.1.0-preview.5-Windows'
 PLAYER_FILES = (
-    'Install.cmd', 'Install.ps1', 'LICENSE', 'NOTICE.md',
+    'installer/Install.cmd', 'installer/Install.ps1', 'LICENSE', 'NOTICE.md',
     'README.md', 'README-RU.md', 'CHANGELOG.md',
     'docs/INSTALL.md', 'docs/CREATORS.md', 'media/banner.svg',
 )
 RUNTIME_SUFFIXES = {'.gd', '.gdextension', '.glb', '.png', '.svg'}
 
 
-def build():
+def build(manual=False):
+    name = NAME.replace("-Windows", "-Manual") if manual else NAME
     version = re.search(r'const VERSION\s*:?=\s*"([^"]+)"', (ROOT / 'mods/multiplayer/mp.gd').read_text(encoding='utf-8'))
     if not version or version[1] != '0.1.0-preview.5':
         raise RuntimeError('Update release metadata for the current runtime version')
-    files = [ROOT / name for name in PLAYER_FILES]
+    files = [ROOT / item for item in PLAYER_FILES if not (manual and item.startswith("installer/"))]
+    if manual: files.append(ROOT / "installer/override.cfg")
+    def destination(path):
+        relative = path.relative_to(ROOT).as_posix()
+        return relative.removeprefix("installer/")
     for path in sorted((ROOT / 'mods/multiplayer').rglob('*')):
         if not path.is_file():
             continue
@@ -34,7 +39,7 @@ def build():
     for path in files:
         if not path.is_file() or path.is_symlink():
             raise RuntimeError(f'Missing or linked release file: {path.name}')
-        relative = path.relative_to(ROOT).as_posix()
+        relative = destination(path)
         raw = path.read_bytes()
         if path.suffix in {'.gd', '.gdextension', '.md', '.ps1', '.cmd', '.cfg', '.txt'}:
             text = raw.decode('utf-8-sig')
@@ -43,14 +48,14 @@ def build():
         manifest.append({'path': relative, 'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()})
     output = ROOT / 'dist'
     output.mkdir(exist_ok=True)
-    archive = output / (NAME + '.zip')
+    archive = output / (name + '.zip')
     with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as target:
         for path in files:
-            info = zipfile.ZipInfo(NAME + '/' + path.relative_to(ROOT).as_posix(), (2026, 10, 23, 0, 0, 0))
+            info = zipfile.ZipInfo(name + '/' + destination(path), (2026, 10, 23, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o100644 << 16
             target.writestr(info, path.read_bytes())
-        info = zipfile.ZipInfo(NAME + '/MANIFEST.json', (2026, 10, 23, 0, 0, 0))
+        info = zipfile.ZipInfo(name + '/MANIFEST.json', (2026, 10, 23, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
         target.writestr(info, json.dumps({'version': version[1], 'files': manifest}, indent=2) + '\n')
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
@@ -66,3 +71,4 @@ def build():
 
 if __name__ == '__main__':
     build()
+    build(manual=True)

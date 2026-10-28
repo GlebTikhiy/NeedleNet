@@ -14,16 +14,20 @@ For a specific location, PowerShell also supports:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -GamePath "<game folder>"
 ```
 
-## Manual installation
+## Manual ZIP / ZIP без установщика
 
-Copy `mods` from the release next to `FindTheNeedle.exe`. Back up `override.cfg`, then add the following autoload entry, keeping its other settings. If `[autoload]` already exists, add only its `MPMod` line there.
+1. Close the game and back up saves, `override.cfg` and any existing `mods/multiplayer` folder. Open the game folder from Steam → Manage → Browse local files.
+2. Extract **NeedleNet-0.1.0-preview.5-Manual.zip**. Copy its `mods` folder beside `FindTheNeedle.exe`.
+3. If the game has no `override.cfg`, copy the included one beside the executable. If it already exists, **keep it** and add the entry below in a text editor. Under an existing `[autoload]` section, add or replace only the `MPMod` line; do not create a second section.
 
 ```ini
 [autoload]
 MPMod="*mods/multiplayer/mp.gd"
 ```
 
-Launch through Steam. A custom shortcut must use the game folder as its working directory. All players must install the same mod version. The host creates the session and chooses a new game or an existing save; guests accept the invitation.
+**По-русски:** закройте игру и скопируйте сохранения, старые `override.cfg` и `mods/multiplayer` в безопасное место. Откройте папку игры через Steam → Управление → Просмотреть локальные файлы. Скопируйте туда `mods` из ручного ZIP. Если `override.cfg` отсутствует, скопируйте готовый из архива. Если уже есть — сохраните его настройки и добавьте строку `MPMod` из примера в раздел `[autoload]` (существующую строку замените). Запускать скрипты не нужно.
+
+Launch through Steam. Everyone needs the same mod version. The host creates the session and chooses New game or Load game; guests accept the invitation. Manual installation does not create automatic backups. To update, close the game, back up and replace `mods/multiplayer`; keep the existing autoload entry.
 
 ## Controls
 

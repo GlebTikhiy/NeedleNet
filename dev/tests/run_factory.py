@@ -26,7 +26,7 @@ try:
             if len(sequences) != len(set(sequences)):
                 raise RuntimeError('Duplicate belt record identity')
     print('LOADED_BELTS_NO_DUPLICATE_IDS_PASS', flush=True)
-    subprocess.run([sys.executable, str(ROOT / 'tests/check_factory_log.py')], check=True)
+    subprocess.run([sys.executable, str(ROOT / 'dev/tests/check_factory_log.py')], check=True)
     shutil.copyfile(ROOT / 'local/host.log', ROOT / 'local/factory-host.log')
     (ROOT / 'local/factory-result.json').write_text(json.dumps({'states': states(), 'checks': ['eight_conveyors', 'physical_cargo_replication', 'cargo_movement', 'no_duplicate_sequences', 'host_quantity_conservation'], 'fixture_objects': 160, 'strands_per_object': 50}, indent=2))
 finally:

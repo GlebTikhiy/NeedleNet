@@ -4,18 +4,18 @@ from pathlib import Path
 import subprocess
 import time
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[2]
 game = root / 'lab/game'
 output = root / 'local/motion' / os.environ.get('NEEDLENET_MOTION_LABEL', 'current')
 output.mkdir(parents=True, exist_ok=True)
 env = os.environ.copy()
 env.update(APPDATA=str(root / 'local/profiles' / f'motion-{time.time_ns()}'), NEEDLENET_TEST='1', NEEDLENET_UI_OUT=str(output))
-env['NEEDLENET_VIEW_DRIVER'] = str(root / 'tests/motion_view_driver.gd')
+env['NEEDLENET_VIEW_DRIVER'] = str(root / 'dev/tests/motion_view_driver.gd')
 startup = subprocess.STARTUPINFO()
 startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 startup.wShowWindow = subprocess.SW_HIDE
 log = output / 'probe.log'
-process = subprocess.Popen([str(game / 'FindTheNeedle.exe'), '--windowed', '--resolution', '1280x720', '--script', str(root / 'tests/motion_probe.gd'), '--log-file', str(log)], cwd=game, env=env, startupinfo=startup)
+process = subprocess.Popen([str(game / 'FindTheNeedle.exe'), '--windowed', '--resolution', '1280x720', '--script', str(root / 'dev/tests/motion_probe.gd'), '--log-file', str(log)], cwd=game, env=env, startupinfo=startup)
 try:
     code = process.wait(timeout=150)
     lines = log.read_text(encoding='utf-8-sig')

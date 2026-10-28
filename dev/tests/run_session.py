@@ -5,7 +5,7 @@ import subprocess
 import time
 from array import array
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 GAME = ROOT / 'lab/game'
 processes = []
 run_id = str(time.time_ns())
@@ -17,7 +17,7 @@ def user_dir(role):
 def launch(role):
     env = os.environ.copy()
     env.update(APPDATA=str(ROOT / 'local/profiles' / run_id / role), NEEDLENET_TEST='1', NEEDLENET_ROLE=role)
-    p = subprocess.Popen([str(GAME / 'FindTheNeedle.exe'), '--headless', '--path', str(GAME), '--script', str(ROOT / 'tests/session_test.gd'), '--log-file', str(ROOT / f'local/{role}.log')], env=env, cwd=GAME, creationflags=subprocess.CREATE_NO_WINDOW)
+    p = subprocess.Popen([str(GAME / 'FindTheNeedle.exe'), '--headless', '--path', str(GAME), '--script', str(ROOT / 'dev/tests/session_test.gd'), '--log-file', str(ROOT / f'local/{role}.log')], env=env, cwd=GAME, creationflags=subprocess.CREATE_NO_WINDOW)
     processes.append(p)
     print(f'{role} pid={p.pid}', flush=True)
 

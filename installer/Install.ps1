@@ -1,5 +1,7 @@
 param([string]$GamePath = '')
 $ErrorActionPreference = 'Stop'
+$payloadRoot = $PSScriptRoot
+if (-not (Test-Path -LiteralPath (Join-Path $payloadRoot 'mods\multiplayer'))) { $payloadRoot = Split-Path -Parent $PSScriptRoot }
 function Find-NeedleGame {
     $steamRoots = @()
     foreach ($key in @('HKCU:\Software\Valve\Steam', 'HKLM:\SOFTWARE\WOW6432Node\Valve\Steam')) {
@@ -50,7 +52,7 @@ if ($text -match '(?m)^\[autoload\]\s*$') {
     $text = [regex]::Replace($text, '(?m)^\[autoload\]\s*$', "[autoload]`r`nMPMod=`"*mods/multiplayer/mp.gd`"", 1)
 } else { $text += "`r`n[autoload]`r`nMPMod=`"*mods/multiplayer/mp.gd`"`r`n" }
 New-Item -ItemType Directory -Path (Join-Path $GamePath 'mods') -Force | Out-Null
-Copy-Item -Path (Join-Path $PSScriptRoot 'mods\multiplayer') -Destination (Join-Path $GamePath 'mods') -Recurse -Force
+Copy-Item -Path (Join-Path $payloadRoot 'mods\multiplayer') -Destination (Join-Path $GamePath 'mods') -Recurse -Force
 [IO.File]::WriteAllText($config, $text, (New-Object Text.UTF8Encoding($false)))
 Write-Host "NeedleNet installed. Backup: $backup"
 Write-Host 'Launch the game through Steam. F2 opens multiplayer.'

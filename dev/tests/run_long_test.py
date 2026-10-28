@@ -158,7 +158,7 @@ def main():
     try:
         persist()
         report['runtime_belts_sha256']=hashlib.sha256((s.GAME/'mods/multiplayer/mp_belts.gd').read_bytes()).hexdigest()
-        report['driver_sha256']=hashlib.sha256((s.ROOT/'tests/session_test.gd').read_bytes()).hexdigest()
+        report['driver_sha256']=hashlib.sha256((s.ROOT/'dev/tests/session_test.gd').read_bytes()).hexdigest()
         with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as probe:probe.bind(('127.0.0.1',27841))
         source_runtime=s.ROOT/'mods/multiplayer'
         if not source_runtime.is_dir():source_runtime=s.ROOT/'public/NeedleNet/mods/multiplayer'

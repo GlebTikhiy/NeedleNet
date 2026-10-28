@@ -6,10 +6,10 @@
 
 ## Before recording / Перед записью
 
-1. Give everyone the same Windows release ZIP and check that the session footer shows `0.1.0-preview.5`.
+1. Give everyone the same mod version (either release ZIP) and check that the session footer shows `0.1.0-preview.5`.
 2. Back up the host's saves. Launch through Steam on each computer.
 3. Rehearse an invitation, new game or load, chat, one item handoff and a host save/reload before the recording session.
-4. Keep the host running throughout the session; host migration and recovery after a crash have not been verified.
+4. Keep the host running throughout the session; host migration is not supported. Checkpoint restoration after a host crash has passed local tests.
 
 Проверки на одном ПК не заменяют репетицию Steam-приглашения между вашими компьютерами. Сборка предварительная; заранее проверьте подключение и сохранение.
 

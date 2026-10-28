@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image
 
 parser = argparse.ArgumentParser()
-parser.add_argument('folder', nargs='?', type=Path, default=Path(__file__).resolve().parents[1] / 'local/motion/current')
+parser.add_argument('folder', nargs='?', type=Path, default=Path(__file__).resolve().parents[2] / 'local/motion/current')
 args = parser.parse_args()
 tops = []
 for index in range(42, 59):

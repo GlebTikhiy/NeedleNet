@@ -74,10 +74,10 @@ Native headless renderer RID warnings/errors and the game's experimental renderi
 See [development setup](DEVELOPMENT.md). Install the optional QA dependency, provide your own isolated game copy, and run one suite at a time:
 
 ```text
-python -m pip install -r tests/requirements-qa.txt
-python tests/run_release_candidate.py
-python tests/run_belt_mutation_pair.py
-python tests/run_shutdown.py
+python -m pip install -r dev/tests/requirements-qa.txt
+python dev/tests/run_release_candidate.py
+python dev/tests/run_belt_mutation_pair.py
+python dev/tests/run_shutdown.py
 ```
 
 For the large rendered scenario, set `NN_STRESS_BELTS=256`, `NN_STRESS_CARGO=4096`, `NN_STRESS_SECONDS=180`, `NN_STRESS_LOOPS=1`, `NN_RENDER_HOST=1`, and `NN_LONG_OUTAGE=1` before running `run_release_candidate.py`. The relay toolkit must be available at the ignored `tools/coop-anything/` path. The mutation pair requires the local `v0.1.0-preview.3` Git tag and always restores the fixed lab file. It deliberately reproduces the old two-copy result before checking the fixed one-copy invariant.

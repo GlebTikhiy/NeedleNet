@@ -5,7 +5,7 @@ Repository: https://github.com/GlebTikhiy/NeedleNet
 This is an independently hosted derivative of the co-op maintenance base credited in NOTICE.md. Its GitHub repository is not marked as an upstream fork. Original copyright and license notices remain intact.
 
 1. Review changes and run applicable tests. Update version/build metadata when necessary.
-2. Run `python build_release.py` to create the named player ZIP and SHA-256 file in `dist/`.
+2. Run `python dev/build_release.py` to create the named player ZIP and SHA-256 file in `dist/`.
 3. Tag the reviewed commit. The first preview uses `v0.1.0-preview.3`.
 4. Create a GitHub prerelease using `docs/RELEASE-NOTES.md` and attach the ZIP and checksum.
 5. Update README and creator-guide links when the recommended release changes.

@@ -1,6 +1,6 @@
 param([double]$Minutes = 90, [switch]$Smoke)
 $ErrorActionPreference = 'Stop'
-$taskRoot = Split-Path -Parent $PSScriptRoot
+$taskRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location -LiteralPath $taskRoot
 $env:PYTHONIOENCODING = 'utf-8'
 $env:PYTHONUTF8 = '1'

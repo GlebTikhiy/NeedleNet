@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[2]
 samples = []
 for line in (root / 'local/host.log').read_text(encoding='utf-8-sig').splitlines():
     if not line.startswith('NN_STATE '):

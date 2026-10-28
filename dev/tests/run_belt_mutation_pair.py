@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 
-ROOT=Path(__file__).resolve().parents[1]
+ROOT=Path(__file__).resolve().parents[2]
 source=ROOT if (ROOT/'mods/multiplayer').is_dir() else ROOT/'public/NeedleNet'
 relative='mods/multiplayer/mp_belts.gd'
 lab=ROOT/'lab/game'/relative
@@ -20,7 +20,7 @@ try:
         lab.write_bytes(raw)
         env=os.environ.copy()
         env['NN_EXPECT_COPIES']=str(copies)
-        subprocess.run([sys.executable,str(ROOT/'tests/run_belt_partial.py')],cwd=ROOT,env=env,check=True)
+        subprocess.run([sys.executable,str(ROOT/'dev/tests/run_belt_partial.py')],cwd=ROOT,env=env,check=True)
         print('MUTATION_PAIR_PASS',label,flush=True)
 finally:
     lab.write_bytes(fixed)

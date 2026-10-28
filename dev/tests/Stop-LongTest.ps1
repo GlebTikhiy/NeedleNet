@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-$taskRoot = Split-Path -Parent $PSScriptRoot
+$taskRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $allowedRoot = [IO.Path]::GetFullPath((Join-Path $taskRoot 'local')) + [IO.Path]::DirectorySeparatorChar
 $pointer = Join-Path $taskRoot 'local\long-test-current.json'
 $state = Get-Content -LiteralPath $pointer -Raw | ConvertFrom-Json

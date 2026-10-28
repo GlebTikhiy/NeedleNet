@@ -47,7 +47,7 @@ Conveyor fixtures are created directly in a test world, bypassing purchase/unloc
 
 Chaos configuration: nominal one-way delay 35±25 ms, base loss 2% plus bursts, 2% reordering and 0.5% duplication. Actual relay counters: 9,232 packets seen, 352 dropped (162 client→server, 190 server→client), 46 duplicated (18/28). All item scenarios completed, including recovery after disconnect and paper-roll/hay-bale pickup/drop, with fixture quantities preserved. This models impaired local ENet traffic, not Steam relay or an actual WAN connection. Files: local/items-chaos-result.json, local/chaos-stats.json and local/chaos-packets.jsonl.
 
-Reproduce additional scenarios: `python tests/run_items.py`, `python tests/run_factory.py`, `python tests/run_chaos.py`. Run one suite at a time; they share the same local host port. Test clients use separate profiles and their processes are cleaned up by their runner.
+Reproduce additional scenarios: `python dev/tests/run_items.py`, `python dev/tests/run_factory.py`, `python dev/tests/run_chaos.py`. Run one suite at a time; they share the same local host port. Test clients use separate profiles and their processes are cleaned up by their runner.
 
 Still outside current evidence: real two-PC Steam/WAN session, full progression, all production-machine types, hours-long play and host-crash rollback. Native renderer RID warnings can occur in headless mode.
 
@@ -103,22 +103,22 @@ Not verified: two-computer Steam invitations, WAN transport, packet-loss behavio
 
 Launching an external test script from a different working directory initially failed to resolve external mod files. Launching with the game's directory as the working directory fixed it. Steam should launch normally from the game directory; custom shortcuts should set their working directory accordingly.
 
-Reproduction: prepare lab/game as a private copy, install package/mods and its autoload there, then run `python tests/run_session.py`. Raw private logs and state reports are under local/. Each run uses new profiles. Runner terminates only its own process handles.
+Reproduction: prepare lab/game as a private copy, install package/mods and its autoload there, then run `python dev/tests/run_session.py`. Raw private logs and state reports are under local/. Each run uses new profiles. Runner terminates only its own process handles.
 
 ## 0.19.6-NeedleNet.5 — 2026-10-23
 
-- PASS `tests/run_session.py`: 11 core checks on four real local game processes, including remote movement, admission limit, rejoin, money, cargo and host save/reload. Snapshot: `local/session_result-v5-core.json`.
-- PASS `tests/run_chat.py`: each of four participants sends Cyrillic and literal markup; all four receive the same author and 200-character bounded message. Snapshot: `local/chat-result.json`. Fixed the test reader's Windows default encoding to explicitly read UTF-8 state files.
-- PASS `tests/run_ui.py`: native menu/pause integration, 720p session layout, visible lobby chat, literal text/history, player menu lock while typing, new/load choices with no saves and a valid save fixture, session retention across dialogs. Fixture comes from the isolated core test; the manual UI test world did not itself produce a save.
+- PASS `dev/tests/run_session.py`: 11 core checks on four real local game processes, including remote movement, admission limit, rejoin, money, cargo and host save/reload. Snapshot: `local/session_result-v5-core.json`.
+- PASS `dev/tests/run_chat.py`: each of four participants sends Cyrillic and literal markup; all four receive the same author and 200-character bounded message. Snapshot: `local/chat-result.json`. Fixed the test reader's Windows default encoding to explicitly read UTF-8 state files.
+- PASS `dev/tests/run_ui.py`: native menu/pause integration, 720p session layout, visible lobby chat, literal text/history, player menu lock while typing, new/load choices with no saves and a valid save fixture, session retention across dialogs. Fixture comes from the isolated core test; the manual UI test world did not itself produce a save.
 - PASS avatar buffer checks in the UI driver: midpoint interpolation, shortest yaw across ±180°, teleport reset. Typed test sample arrays are populated through append to preserve GDScript array types.
-- PASS `tests/run_chaos.py`: Co-op Anything bad_wifi relay, seed 4242, four-client cargo/movement/claim/disconnect/rejoin and supported item kinds.
+- PASS `dev/tests/run_chaos.py`: Co-op Anything bad_wifi relay, seed 4242, four-client cargo/movement/claim/disconnect/rejoin and supported item kinds.
 - PASS Universal Modder publication check: 164 files, zero failures/warnings.
 
 Limits: no visual recording of continuous walking/running under packet loss, no real two-PC Steam/WAN run, no long chat scrolling/input endurance run, no hours-long factory session or host crash test. The 100 ms remote pose buffer intentionally trades a small presentation delay for smoother motion; long packet gaps hold the last pose.
 
 ## Public player package — 2026-10-23
 
-`python tests/check_public_release.py`: PASS. 166 entries, including 155 runtime files identical to .5, valid per-file hashes, matching archive contents and manifest, reproducible ZIP, no forbidden development/personal/game-binary files, valid relative Markdown links, wrong game build rejected before writes. Steam-library discovery and backup/config preservation were also checked in an isolated installer fixture. Gameplay code unchanged.
+`python dev/tests/check_public_release.py`: PASS. 166 entries, including 155 runtime files identical to .5, valid per-file hashes, matching archive contents and manifest, reproducible ZIP, no forbidden development/personal/game-binary files, valid relative Markdown links, wrong game build rejected before writes. Steam-library discovery and backup/config preservation were also checked in an isolated installer fixture. Gameplay code unchanged.
 
 
 ## 0.1.0-preview.2 — chat placement and local body jitter
